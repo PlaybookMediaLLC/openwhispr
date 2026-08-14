@@ -111,3 +111,16 @@ test("requires renamed releases to use a distinct application identity", () => {
     /non-OpenWhispr RELEASE_PROTOCOL_SCHEME/
   );
 });
+
+test("requires forks to use an application identity distinct from canonical OpenWhispr", () => {
+  assert.throws(
+    () =>
+      createReleaseConfig(baseConfig, {
+        productName: "OpenWhispr",
+        appId: "com.gizmolabs.openwhispr",
+        protocolScheme: "openwhispr",
+        repository: "Oppulence-Engineering/openwhispr",
+      }),
+    /fork release must use a non-OpenWhispr RELEASE_APP_ID/
+  );
+});

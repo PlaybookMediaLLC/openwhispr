@@ -6,6 +6,7 @@ const path = require("path");
 const DEFAULT_PRODUCT_NAME = "OpenWhispr";
 const DEFAULT_APP_ID = "com.gizmolabs.openwhispr";
 const DEFAULT_PROTOCOL_SCHEME = "openwhispr";
+const CANONICAL_REPOSITORY = "openwhispr/openwhispr";
 
 function requireValue(name, value) {
   if (!value || !value.trim()) {
@@ -50,6 +51,14 @@ function validateReleaseIdentity({ productName, appId, protocolScheme, repositor
   }
   if (isRenamed && protocolScheme === DEFAULT_PROTOCOL_SCHEME) {
     throw new Error("A renamed release must use a non-OpenWhispr RELEASE_PROTOCOL_SCHEME");
+  }
+
+  const isCanonicalRepository = repository.toLowerCase() === CANONICAL_REPOSITORY;
+  if (!isCanonicalRepository && appId === DEFAULT_APP_ID) {
+    throw new Error("A fork release must use a non-OpenWhispr RELEASE_APP_ID");
+  }
+  if (!isCanonicalRepository && protocolScheme === DEFAULT_PROTOCOL_SCHEME) {
+    throw new Error("A fork release must use a non-OpenWhispr RELEASE_PROTOCOL_SCHEME");
   }
 }
 
