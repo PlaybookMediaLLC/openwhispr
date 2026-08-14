@@ -30,6 +30,11 @@ on:
         required: true
         default: true
         type: boolean
+      allow_unsigned_release:
+        description: "Explicitly allow publishing when Windows or macOS signing secrets are missing"
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: write # Required for creating releases
@@ -56,7 +61,13 @@ jobs:
           node-version-file: .nvmrc
       - name: Validate release inputs
         env:
+          GH_TOKEN: ${{ github.token }}
           MICROSOFT_CALENDAR_CLIENT_ID: ${{ secrets.MICROSOFT_CALENDAR_CLIENT_ID }}
+          EVENT_NAME: ${{ github.event_name }}
+          PUBLISH_RELEASE: ${{ inputs.publish_release }}
+          ALLOW_UNSIGNED_RELEASE: ${{ inputs.allow_unsigned_release }}
+          WINDOWS_SIGNING_AVAILABLE: ${{ secrets.AZURE_TENANT_ID != '' && secrets.AZURE_CLIENT_ID != '' && secrets.AZURE_CLIENT_SECRET != '' }}
+          MACOS_SIGNING_AVAILABLE: ${{ secrets.APPLE_CERTIFICATE_BASE64 != '' && secrets.APPLE_CERTIFICATE_PASSWORD != '' && secrets.APPLE_API_KEY_BASE64 != '' && secrets.APPLE_API_KEY_ID != '' && secrets.APPLE_API_ISSUER != '' && secrets.APPLE_TEAM_ID != '' }}
         run: |
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
           if ! echo "$RELEASE_TAG" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
@@ -69,6 +80,22 @@ jobs:
           fi
           if [ -z "$MICROSOFT_CALENDAR_CLIENT_ID" ]; then
             echo "::error::MICROSOFT_CALENDAR_CLIENT_ID is required for release builds"
+            exit 1
+          fi
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::Release $RELEASE_TAG already exists. Delete the incomplete draft or choose a new version before retrying."
+            exit 1
+          fi
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] && \
+             git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "::error::Tag $RELEASE_TAG already exists. Manual releases must use a new version."
+            exit 1
+          fi
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] && \
+             [ "$PUBLISH_RELEASE" = "true" ] && \
+             [ "$ALLOW_UNSIGNED_RELEASE" != "true" ] && \
+             { [ "$WINDOWS_SIGNING_AVAILABLE" != "true" ] || [ "$MACOS_SIGNING_AVAILABLE" != "true" ]; }; then
+            echo "::error::Publishing requires complete Windows and macOS signing secrets. Set allow_unsigned_release only when an unsigned public release is intentional."
             exit 1
           fi
           node scripts/prepare-release-config.js
@@ -92,8 +119,30 @@ jobs:
           # a skipped DB test here means the rebuild step above is gone: fail instead
           REQUIRE_DB_TESTS: "1"
 
-  build-linux:
+  prepare-release:
     needs: tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create empty draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          args=(
+            "$RELEASE_TAG"
+            --repo "$GITHUB_REPOSITORY"
+            --title "$RELEASE_PRODUCT_NAME $RELEASE_TAG"
+            --draft
+          )
+          if [ "$EVENT_NAME" = "push" ]; then
+            args+=(--verify-tag)
+          else
+            args+=(--target "$GITHUB_SHA")
+          fi
+          gh release create "${args[@]}"
+
+  build-linux:
+    needs: prepare-release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -182,7 +231,7 @@ jobs:
           VITE_OPENWHISPR_OAUTH_CALLBACK_URL: ${{ vars.VITE_OPENWHISPR_OAUTH_CALLBACK_URL }}
 
   build-windows:
-    needs: tests
+    needs: prepare-release
     runs-on: windows-latest
     env:
       WINDOWS_SIGNING_AVAILABLE: ${{ secrets.AZURE_TENANT_ID != '' && secrets.AZURE_CLIENT_ID != '' && secrets.AZURE_CLIENT_SECRET != '' }}
@@ -300,7 +349,7 @@ jobs:
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
 
   build-macos:
-    needs: tests
+    needs: prepare-release
     runs-on: macos-latest
     env:
       MACOS_SIGNING_AVAILABLE: ${{ secrets.APPLE_CERTIFICATE_BASE64 != '' && secrets.APPLE_CERTIFICATE_PASSWORD != '' && secrets.APPLE_API_KEY_BASE64 != '' && secrets.APPLE_API_KEY_ID != '' && secrets.APPLE_API_ISSUER != '' && secrets.APPLE_TEAM_ID != '' }}
