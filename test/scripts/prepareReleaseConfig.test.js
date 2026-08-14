@@ -52,6 +52,11 @@ test("creates a renamed release config for the current repository", () => {
     schemes: ["newwhispr"],
   });
   assert.equal(config.dmg.title, "New Whispr");
+  assert.deepEqual(config.extraMetadata.releaseIdentity, {
+    productName: "New Whispr",
+    appId: "engineering.oppulence.newwhispr",
+    protocolScheme: "newwhispr",
+  });
   assert.equal(
     config.mac.extendInfo.NSMicrophoneUsageDescription,
     "New Whispr uses the microphone."
