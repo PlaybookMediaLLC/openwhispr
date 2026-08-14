@@ -19,6 +19,9 @@ Before running the workflow:
 6. Leave **Publish release** enabled to publish only after Linux, Windows, and both macOS builds
    succeed. Disable it to leave the GitHub release as a draft.
 
+`MICROSOFT_CALENDAR_CLIENT_ID` is required for every release build. Configure it in repository
+secrets before dispatching the workflow.
+
 The workflow generates an Electron Builder configuration for each runner. It updates the visible
 product name, bundle/application ID, protocol scheme, macOS permission text, artifact names, and
 GitHub publishing target without committing generated branding files.
@@ -26,7 +29,8 @@ GitHub publishing target without committing generated branding files.
 Windows and macOS builds use signing secrets when the complete platform secret set is available.
 Forks without those secrets still produce unsigned artifacts. Unsigned artifacts are suitable for
 internal testing but will show operating-system trust warnings and should not be presented as a
-fully trusted public release.
+fully trusted public release. The workflow refuses to publish unsigned artifacts unless
+**Allow unsigned release** is explicitly enabled. Draft-only runs do not require that override.
 
 Repository administrators must allow GitHub Actions to create releases with `contents: write`.
 Publishing a release also triggers the Nix updater, which discovers the renamed AppImage asset and
@@ -34,6 +38,10 @@ opens a pull request pointing `nix/package.nix` at this repository's release.
 
 Tag pushes matching `v*.*.*` retain the existing behavior: they build the standard OpenWhispr
 identity and leave the release as a draft for manual review.
+
+The workflow creates one empty draft before starting platform builds and rejects any version whose
+tag or release already exists. This prevents reruns from mixing assets from different commits. If a
+run fails after creating its draft, delete that incomplete draft before retrying the same version.
 
 ## Synchronize canonical upstream
 
