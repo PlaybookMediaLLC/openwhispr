@@ -41,6 +41,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
         run: |
           mapfile -t assets < <(
             gh release view "$RELEASE_TAG" \
@@ -52,49 +53,43 @@ jobs:
             printf '%s\n' "${assets[@]}"
             exit 1
           fi
+          if ! echo "${assets[0]}" | grep -qE "^[A-Za-z0-9][A-Za-z0-9 ._-]{0,63}-${RELEASE_VERSION}-linux-x86_64\.AppImage$"; then
+            echo "::error::Unexpected AppImage asset name: ${assets[0]}"
+            exit 1
+          fi
           echo "name=${assets[0]}" >> "$GITHUB_OUTPUT"
 
-      - name: Check if update needed
-        id: check
-        run: |
-          current=$(grep 'version = ' nix/package.nix | head -1 | sed 's/.*"\(.*\)".*/\1/')
-          echo "current=$current" >> "$GITHUB_OUTPUT"
-          if [ "$current" = "${{ steps.release.outputs.version }}" ]; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Download AppImage and compute hash
-        if: steps.check.outputs.skip != 'true'
         id: hash
         env:
           GH_TOKEN: ${{ github.token }}
+          ASSET_NAME: ${{ steps.asset.outputs.name }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
         run: |
           tmpdir=$(mktemp -d)
-          gh release download "${{ steps.release.outputs.tag }}" \
-            --pattern "${{ steps.asset.outputs.name }}" \
+          gh release download "$RELEASE_TAG" \
+            --pattern "$ASSET_NAME" \
             --dir "$tmpdir"
-          tmpfile="$tmpdir/${{ steps.asset.outputs.name }}"
+          tmpfile="$tmpdir/$ASSET_NAME"
           sri="sha256-$(sha256sum "$tmpfile" | cut -d' ' -f1 | xxd -r -p | base64 -w0)"
           rm -rf "$tmpdir"
           echo "sri=$sri" >> "$GITHUB_OUTPUT"
 
       - name: Update nix/package.nix
-        if: steps.check.outputs.skip != 'true'
+        id: update
+        env:
+          ASSET_NAME: ${{ steps.asset.outputs.name }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+          RELEASE_HASH: ${{ steps.hash.outputs.sri }}
         run: |
-          version="${{ steps.release.outputs.version }}"
-          hash="${{ steps.hash.outputs.sri }}"
-          asset_name="${{ steps.asset.outputs.name }}"
-          sed -i "s|version = \".*\";|version = \"${version}\";|" nix/package.nix
-          sed -i "s|hash = \"sha256-.*\";|hash = \"${hash}\";|" nix/package.nix
-          RELEASE_REPOSITORY="${{ github.repository }}" \
-          RELEASE_VERSION="$version" \
-          RELEASE_ASSET_NAME="$asset_name" \
           node <<'NODE'
           const fs = require("fs");
           const file = "nix/package.nix";
           const repository = process.env.RELEASE_REPOSITORY;
           const version = process.env.RELEASE_VERSION;
-          const assetName = process.env.RELEASE_ASSET_NAME;
+          const hash = process.env.RELEASE_HASH;
+          const assetName = process.env.ASSET_NAME;
           const encodedAssetName = encodeURIComponent(assetName).replace(
             encodeURIComponent(version),
             "${version}"
@@ -102,13 +97,28 @@ jobs:
           const nixVersion = "${version}";
           const url = `https://github.com/${repository}/releases/download/v${nixVersion}/${encodedAssetName}`;
           const source = fs.readFileSync(file, "utf8");
-          const updated = source.replace(/^\s*url = ".*";$/m, `    url = "${url}";`);
-          if (updated === source) throw new Error("Could not update Nix release URL");
+          const requiredPatterns = [
+            /version = ".*";/,
+            /hash = "sha256-.*";/,
+            /^\s*url = ".*";$/m,
+          ];
+          if (requiredPatterns.some((pattern) => !pattern.test(source))) {
+            throw new Error("Could not find required Nix release metadata fields");
+          }
+          const updated = source
+            .replace(requiredPatterns[0], `version = "${version}";`)
+            .replace(requiredPatterns[1], `hash = "${hash}";`)
+            .replace(requiredPatterns[2], `    url = "${url}";`);
           fs.writeFileSync(file, updated);
           NODE
+          if git diff --quiet -- nix/package.nix; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Create pull request
-        if: steps.check.outputs.skip != 'true'
+        if: steps.update.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
