@@ -95,9 +95,12 @@ jobs:
           const repository = process.env.RELEASE_REPOSITORY;
           const version = process.env.RELEASE_VERSION;
           const assetName = process.env.RELEASE_ASSET_NAME;
-          const versionedAssetName = assetName.replace(version, "${version}");
+          const encodedAssetName = encodeURIComponent(assetName).replace(
+            encodeURIComponent(version),
+            "${version}"
+          );
           const nixVersion = "${version}";
-          const url = `https://github.com/${repository}/releases/download/v${nixVersion}/${versionedAssetName}`;
+          const url = `https://github.com/${repository}/releases/download/v${nixVersion}/${encodedAssetName}`;
           const source = fs.readFileSync(file, "utf8");
           const updated = source.replace(/^\s*url = ".*";$/m, `    url = "${url}";`);
           if (updated === source) throw new Error("Could not update Nix release URL");
