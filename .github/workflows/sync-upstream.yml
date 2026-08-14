@@ -1,0 +1,84 @@
+name: Sync upstream branch
+
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+    inputs:
+      upstream_repository:
+        description: "GitHub repository to mirror"
+        required: true
+        default: "OpenWhispr/openwhispr"
+        type: string
+      upstream_branch:
+        description: "Branch to mirror into the local upstream branch"
+        required: true
+        default: "main"
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-upstream-branch
+  cancel-in-progress: false
+
+env:
+  UPSTREAM_REPOSITORY: ${{ github.event_name == 'workflow_dispatch' && inputs.upstream_repository || 'OpenWhispr/openwhispr' }}
+  UPSTREAM_BRANCH: ${{ github.event_name == 'workflow_dispatch' && inputs.upstream_branch || 'main' }}
+  TARGET_BRANCH: upstream
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the fork
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate upstream source
+        shell: bash
+        run: |
+          if ! echo "$UPSTREAM_REPOSITORY" | grep -qE '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$'; then
+            echo "::error::upstream_repository must have the form owner/repository"
+            exit 1
+          fi
+          if ! git check-ref-format --branch "$UPSTREAM_BRANCH" >/dev/null; then
+            echo "::error::Invalid upstream branch: $UPSTREAM_BRANCH"
+            exit 1
+          fi
+
+      - name: Fetch upstream branch
+        shell: bash
+        run: |
+          git remote add source "https://github.com/${UPSTREAM_REPOSITORY}.git"
+          git fetch --no-tags source \
+            "+refs/heads/${UPSTREAM_BRANCH}:refs/remotes/source/${UPSTREAM_BRANCH}"
+
+      - name: Mirror into the upstream branch
+        shell: bash
+        run: |
+          source_ref="refs/remotes/source/${UPSTREAM_BRANCH}"
+          target_ref="refs/heads/${TARGET_BRANCH}"
+
+          git fetch --no-tags origin \
+            "+${target_ref}:refs/remotes/origin/${TARGET_BRANCH}" || true
+          expected=$(git rev-parse "refs/remotes/origin/${TARGET_BRANCH}" 2>/dev/null || true)
+
+          if [ -n "$expected" ]; then
+            git push \
+              --force-with-lease="${target_ref}:${expected}" \
+              origin "${source_ref}:${target_ref}"
+          else
+            git push origin "${source_ref}:${target_ref}"
+          fi
+
+          synced_commit=$(git rev-parse "$source_ref")
+          {
+            echo "### Upstream branch synchronized"
+            echo ""
+            echo "- Source: \`${UPSTREAM_REPOSITORY}@${UPSTREAM_BRANCH}\`"
+            echo "- Target: \`${GITHUB_REPOSITORY}@${TARGET_BRANCH}\`"
+            echo "- Commit: \`${synced_commit}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
