@@ -15,6 +15,11 @@ on:
         required: true
         default: "main"
         type: string
+      allow_non_fast_forward:
+        description: "Allow a manual run to replace divergent upstream branch history"
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -26,6 +31,7 @@ concurrency:
 env:
   UPSTREAM_REPOSITORY: ${{ github.event_name == 'workflow_dispatch' && inputs.upstream_repository || 'OpenWhispr/openwhispr' }}
   UPSTREAM_BRANCH: ${{ github.event_name == 'workflow_dispatch' && inputs.upstream_branch || 'main' }}
+  ALLOW_NON_FAST_FORWARD: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_non_fast_forward || false }}
   TARGET_BRANCH: upstream
 
 jobs:
@@ -67,9 +73,16 @@ jobs:
           expected=$(git rev-parse "refs/remotes/origin/${TARGET_BRANCH}" 2>/dev/null || true)
 
           if [ -n "$expected" ]; then
-            git push \
-              --force-with-lease="${target_ref}:${expected}" \
-              origin "${source_ref}:${target_ref}"
+            if git merge-base --is-ancestor "$expected" "$source_ref"; then
+              git push origin "${source_ref}:${target_ref}"
+            elif [ "$ALLOW_NON_FAST_FORWARD" = "true" ]; then
+              git push \
+                --force-with-lease="${target_ref}:${expected}" \
+                origin "${source_ref}:${target_ref}"
+            else
+              echo "::error::The upstream branch contains divergent history. Run manually with allow_non_fast_forward enabled only if replacing it is intentional."
+              exit 1
+            fi
           else
             git push origin "${source_ref}:${target_ref}"
           fi
