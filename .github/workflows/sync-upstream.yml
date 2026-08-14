@@ -70,7 +70,7 @@ jobs:
 
           git fetch --no-tags origin \
             "+${target_ref}:refs/remotes/origin/${TARGET_BRANCH}" || true
-          expected=$(git rev-parse "refs/remotes/origin/${TARGET_BRANCH}" 2>/dev/null || true)
+          expected=$(git rev-parse --verify "refs/remotes/origin/${TARGET_BRANCH}" 2>/dev/null || true)
 
           if [ -n "$expected" ]; then
             if git merge-base --is-ancestor "$expected" "$source_ref"; then
