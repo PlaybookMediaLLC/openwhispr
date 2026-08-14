@@ -19,6 +19,11 @@ Before running the workflow:
 6. Leave **Publish release** enabled to publish only after Linux, Windows, and both macOS builds
    succeed. Disable it to leave the GitHub release as a draft.
 
+Enable **Validate only** to exercise the hosted input validation, generated packaging
+configuration, quality checks, translations, dependency audit, and tests without creating a tag,
+draft release, build assets, or published release. Use this before the first release under a new
+product identity.
+
 `MICROSOFT_CALENDAR_CLIENT_ID` is required for every release build. Configure it in repository
 secrets before dispatching the workflow.
 

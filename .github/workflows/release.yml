@@ -35,6 +35,11 @@ on:
         required: true
         default: false
         type: boolean
+      validate_only:
+        description: "Validate inputs, generated configuration, quality checks, and tests without creating a release"
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: write # Required for creating releases
@@ -46,6 +51,7 @@ env:
   RELEASE_PROTOCOL_SCHEME: ${{ github.event_name == 'workflow_dispatch' && inputs.protocol_scheme || 'openwhispr' }}
   RELEASE_CONFIG_PATH: electron-builder.release.generated.json
   RELEASE_REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
+  RELEASE_VALIDATE_ONLY: ${{ github.event_name == 'workflow_dispatch' && inputs.validate_only || false }}
 
 concurrency:
   group: release-${{ github.ref }}
@@ -78,7 +84,7 @@ jobs:
             echo "::error::Release tag $RELEASE_TAG does not match package version v$PACKAGE_VERSION"
             exit 1
           fi
-          if [ -z "$MICROSOFT_CALENDAR_CLIENT_ID" ]; then
+          if [ "$RELEASE_VALIDATE_ONLY" != "true" ] && [ -z "$MICROSOFT_CALENDAR_CLIENT_ID" ]; then
             echo "::error::MICROSOFT_CALENDAR_CLIENT_ID is required for release builds"
             exit 1
           fi
@@ -92,6 +98,7 @@ jobs:
             exit 1
           fi
           if [ "$EVENT_NAME" = "workflow_dispatch" ] && \
+             [ "$RELEASE_VALIDATE_ONLY" != "true" ] && \
              [ "$PUBLISH_RELEASE" = "true" ] && \
              [ "$ALLOW_UNSIGNED_RELEASE" != "true" ] && \
              { [ "$WINDOWS_SIGNING_AVAILABLE" != "true" ] || [ "$MACOS_SIGNING_AVAILABLE" != "true" ]; }; then
@@ -121,6 +128,7 @@ jobs:
 
   prepare-release:
     needs: tests
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.validate_only != true }}
     runs-on: ubuntu-latest
     steps:
       - name: Create empty draft release
