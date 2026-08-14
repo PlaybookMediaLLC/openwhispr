@@ -57,6 +57,55 @@ The agent plus semantic search becomes "ask the corpus." Product asks what to bu
 - **Founders are the wedge, not the revenue.** A cheap single-player tier plus the "achieve PMF with evidence" story brings them in. They graduate into team plans.
 - **Content is a feature.** It demonstrates value fast ("here is a case study from Tuesday's call"). It is not the company.
 
+## The Path to a Billion Without Enterprise Pricing
+
+$1B valuation ≈ $100M ARR. We do not need $100k contracts. We need ~300k paid seats at ~$25/month. Breadth, not ACV.
+
+**Local processing makes breadth profitable.** Gong and Fireflies pay cloud GPU for every minute of every call, so they must charge $100+/seat/month. Our transcription, diarization, embedding, and search run on the user's machine. We charge $15–25 and keep 90%+ gross margin. Cheap pricing is not a sacrifice — it is a weapon our cost structure lets us fire and theirs does not. Say it on the pricing page: "We are 5x cheaper because your computer does the work and your audio never leaves it."
+
+The ladder:
+
+1. **Free forever: local dictation.** The Trojan horse. Every knowledge worker is a prospect. It costs us nothing to serve.
+2. **Pro ($10–15/mo): the personal memory.** Your calls, your notes, your searchable corpus.
+3. **Team ($25/seat/mo): the shared corpus.** Workspaces, spaces, shared evidence — already built.
+4. **Org (priced on connectors + data volume, not seats).** Tickets, Notion, CRM, compliance controls. This tier funds the business. Unlimited viewers stay free so the evidence spreads and the product becomes hard to rip out.
+
+The expansion motion is bottom-up: one PM installs the free tool, their pain leaderboard shows up in a roadmap meeting with receipts, and the team plan sells itself. The sales army is the artifact.
+
+## The Moat: Build What Is Hard
+
+This repo is a fork of open-source OpenWhispr. The inherited code is not a moat — anyone can fork it, including our competitors. The moat is the set of features that are genuinely hard to build, compound over time, and that cloud-first competitors will not build because cloud is easier. In priority order:
+
+1. **Persistent speaker identity.** Recognize the same voice across meetings, on-device, with consent. We already compute speaker embeddings for diarization; extend them into a local voice-print library. "This is the 4th call where Dana from Acme raised pricing" is a sentence no competitor can say. Hard signal processing + privacy engineering.
+2. **Cross-source identity resolution.** Stitch the same customer across calls, tickets, Notion notes, and CRM rows — locally. Entity resolution is hard everywhere; doing it without a cloud join is harder. It is what turns fragments into one customer record.
+3. **End-to-end encrypted team sync.** A shared corpus where the server cannot read the evidence. CRDT sync over encrypted blobs is genuinely difficult — and it cements the compliance story that wins regulated buyers. No competitor's architecture allows it.
+4. **The evidence graph.** Quotes linked to speakers, companies, deals, releases, and each other. This schema powers change detection, the segment heatmap, and objection trends. Easy to describe, hard to get right, and it deepens with every source connected.
+5. **On-device intelligence at consumer-hardware speed.** Clustering, trend detection, and change alerts running locally. Performance engineering competitors skip because they can throw cloud GPUs at it. Our margin advantage lives here.
+6. **Consent infrastructure.** Jurisdiction-aware recording consent (notify, two-party states, EU). Legal-engineering nobody wants to build. It becomes the procurement checklist item only we pass.
+7. **Connector breadth.** Boring, grinding, compounding. Every connector widens the corpus gap between us and a fresh fork.
+
+The corpus itself is the final moat: every captured call, ticket, and note raises switching cost. Features 1–7 exist to maximize how fast that corpus grows and how much it can say.
+
+## Marketing: Run It on the Graveyard Corpus
+
+We own a content engine built on loot-drop.io's 1,749 startup autopsies. It is the perfect narrative machine for this product, because the dataset proves the problem daily: **companies die guessing, and the evidence was in their customer conversations the whole time.**
+
+The narrative spine: *"1,749 dead companies. Most of them were told — by their own customers — what was wrong. Nobody kept the receipts."*
+
+How the corpus becomes the funnel:
+
+1. **The "Ignored Evidence" angle on every autopsy.** Each daily autopsy already reconstructs the decision chain. Add one beat: the moment the market told them and they did not hear it — the churned customer, the unread objection, the feature nobody asked for. That beat's CTA is this product. Figures attribute to loot-drop.io; claims about living founders get flagged in the deliverable per canon.
+2. **Corpus-level stat content.** Mine the dataset for aggregate proof: how many failures trace to "no market need," how many pivoted away from what customers asked for, median time from first warning sign to death. Each stat becomes a card, a thread, a chart — and an ad. The dataset is a proprietary research asset competitors cannot cite.
+3. **A flagship series: "The Calls That Could Have Saved Them."** Reconstruct, from public post-mortems, what the customer signal looked like before the end — then show what a pain leaderboard of that company would have said six months out. Longform episode, atomized through the existing pipeline into shorts, threads, essays, and newsletter editions.
+4. **The founder demo as content.** Run our own customer calls through the product publicly — live evidence audits, real pain leaderboards, real objection trends. The product marketing *is* founder-led content, and the artifacts are screenshots people share.
+5. **Artifacts as distribution.** Quote cards, pain leaderboards, and evidence-linked case studies get pasted into Slack, decks, and LinkedIn. A subtle "evidence via" mark on exports turns every shared insight into an impression — the Loom loop. The referral system is already built.
+6. **Bottom-funnel owned pages.** "Gong alternative without the bot." "Fireflies alternative that's local." "Call recording tools that pass EU/HIPAA review." High-intent queries, one-sentence differentiator, desperate buyers, no good incumbent answers.
+7. **Acquisition hook stays simple.** Lead with "the notetaker with no bot in your meeting" — visual, demo-able, instantly understood. Intelligence is the retention story, not the hook.
+
+The funnel, wired: Graveyard content (attention) → free local dictation (the Trojan horse) → "achieve PMF with evidence" Pro tier (the founder wedge) → team corpus (the business) → org connectors (the moat).
+
+One positioning line, used everywhere: **"Your customers already told you what to build. We kept the receipts."**
+
 ## What We Must Build
 
 The hard parts — capture moat, vector layer, diarization, the agent, team scaffolding — are in the repo. The gap is small and honest:
