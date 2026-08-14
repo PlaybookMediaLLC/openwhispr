@@ -85,8 +85,12 @@ function createReleaseConfig(baseConfig, options) {
   validateReleaseIdentity({ productName, appId, protocolScheme, repository });
 
   const previousName = baseConfig.productName || DEFAULT_PRODUCT_NAME;
-  const config = replaceProductName(structuredClone(baseConfig), previousName, productName);
+  const config = structuredClone(baseConfig);
   const [owner, repo] = repository.split("/");
+
+  if (config.mac?.extendInfo) {
+    config.mac.extendInfo = replaceProductName(config.mac.extendInfo, previousName, productName);
+  }
 
   config.productName = productName;
   config.appId = appId;

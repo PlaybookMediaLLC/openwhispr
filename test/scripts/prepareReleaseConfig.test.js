@@ -23,6 +23,7 @@ const baseConfig = {
   win: {
     azureSignOptions: {
       certificateProfileName: "openwhispr-release",
+      codeSigningAccountName: "OpenWhispr",
     },
   },
   dmg: { title: "OpenWhispr" },
@@ -62,6 +63,7 @@ test("creates a renamed release config for the current repository", () => {
     private: true,
     releaseType: "draft",
   });
+  assert.equal(config.win.azureSignOptions.codeSigningAccountName, "OpenWhispr");
 });
 
 test("disables unavailable platform signing without changing the base config", () => {
