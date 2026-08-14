@@ -86,6 +86,8 @@ This repo is a fork of open-source OpenWhispr. The inherited code is not a moat 
 
 The corpus itself is the final moat: every captured call, ticket, and note raises switching cost. Features 1–7 exist to maximize how fast that corpus grows and how much it can say.
 
+Each feature has a design RFC in [docs/rfcs/](docs/rfcs/README.md).
+
 ## Marketing: Run It on the Graveyard Corpus
 
 We own a content engine built on loot-drop.io's 1,749 startup autopsies. It is the perfect narrative machine for this product, because the dataset proves the problem daily: **companies die guessing, and the evidence was in their customer conversations the whole time.**
