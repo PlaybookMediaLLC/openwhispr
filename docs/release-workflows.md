@@ -22,6 +22,10 @@ Before running the workflow:
 `MICROSOFT_CALENDAR_CLIENT_ID` is required for every release build. Configure it in repository
 secrets before dispatching the workflow.
 
+Fork repositories must always use an application ID and protocol scheme distinct from canonical
+OpenWhispr, even if they keep the OpenWhispr display name. This prevents fork builds from replacing
+canonical installations or claiming canonical deep links.
+
 The workflow generates an Electron Builder configuration for each runner. It updates the visible
 product name, bundle/application ID, protocol scheme, macOS permission text, artifact names, and
 GitHub publishing target without committing generated branding files.
@@ -36,8 +40,9 @@ Repository administrators must allow GitHub Actions to create releases with `con
 Publishing a release also triggers the Nix updater, which discovers the renamed AppImage asset and
 opens a pull request pointing `nix/package.nix` at this repository's release.
 
-Tag pushes matching `v*.*.*` retain the existing behavior: they build the standard OpenWhispr
-identity and leave the release as a draft for manual review.
+On the canonical repository, tag pushes matching `v*.*.*` retain the existing behavior: they build
+the standard OpenWhispr identity and leave the release as a draft for manual review. Fork releases
+must use manual dispatch so their distinct application ID and protocol scheme can be supplied.
 
 The workflow creates one empty draft before starting platform builds and rejects any version whose
 tag or release already exists. This prevents reruns from mixing assets from different commits. If a
@@ -48,9 +53,11 @@ run fails after creating its draft, delete that incomplete draft before retrying
 The **Sync upstream branch** workflow runs daily at 06:17 UTC and can also be dispatched manually.
 By default it mirrors `OpenWhispr/openwhispr@main` into this repository's branch named `upstream`.
 
-The `upstream` branch is a mirror, not a merge branch. The workflow force-updates it with
-`--force-with-lease`, so commits made directly on that branch will be replaced on the next sync.
-Use it as the source for comparison or merge pull requests into `main`.
+The `upstream` branch is a mirror, not a merge branch. Scheduled runs only fast-forward it. If the
+branch contains divergent history, the workflow stops instead of replacing commits. A manual run
+can enable **Allow non-fast-forward** to replace divergent history with `--force-with-lease` when
+that reset is intentional. Use the branch as the source for comparison or merge pull requests into
+`main`.
 
 The workflow requires `contents: write`. If the `upstream` branch is protected, its rules must
 allow GitHub Actions to update it. Scheduled workflows run only from the repository's default
