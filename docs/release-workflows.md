@@ -59,7 +59,13 @@ can enable **Allow non-fast-forward** to replace divergent history with `--force
 that reset is intentional. Use the branch as the source for comparison or merge pull requests into
 `main`.
 
-The workflow requires `contents: write`. If the `upstream` branch is protected, its rules must
-allow GitHub Actions to update it. Scheduled workflows run only from the repository's default
-branch and GitHub may disable schedules in inactive repositories, so the manual dispatch remains
-available as a fallback.
+The workflow requires `contents: write`. GitHub's built-in workflow token cannot create or update
+a branch when the incoming commits change files under `.github/workflows`. For an exact mirror,
+configure an `UPSTREAM_SYNC_TOKEN` repository secret using a fine-grained personal access token
+with **Contents: Read and write** and **Workflows: Read and write** access to this repository. The
+workflow falls back to `github.token` when that secret is absent and stops with a clear error before
+a workflow-file change would be skipped or partially mirrored.
+
+If the `upstream` branch is protected, its rules must allow GitHub Actions to update it. Scheduled
+workflows run only from the repository's default branch and GitHub may disable schedules in inactive
+repositories, so the manual dispatch remains available as a fallback.
