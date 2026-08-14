@@ -94,6 +94,10 @@ function createReleaseConfig(baseConfig, options) {
 
   config.productName = productName;
   config.appId = appId;
+  config.extraMetadata = {
+    ...(config.extraMetadata || {}),
+    releaseIdentity: { productName, appId, protocolScheme },
+  };
   config.protocols = {
     ...(config.protocols || {}),
     name: `${productName} Protocol`,

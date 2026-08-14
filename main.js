@@ -25,7 +25,10 @@ const {
 const path = require("path");
 const http = require("http");
 const tls = require("tls");
+const { resolveReleaseIdentity } = require("./src/helpers/releaseIdentity");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
+
+const RELEASE_IDENTITY = resolveReleaseIdentity(require("./package.json").releaseIdentity);
 
 // Extend Node's TLS trust with the OS store so ws and https.get see corporate
 // CAs that Chromium already trusts.
@@ -47,7 +50,7 @@ const DEFAULT_OAUTH_PROTOCOL_BY_CHANNEL = {
   staging: "openwhispr-staging",
   production: "openwhispr",
 };
-const BASE_WINDOWS_APP_ID = "com.gizmolabs.openwhispr";
+const BASE_WINDOWS_APP_ID = RELEASE_IDENTITY.appId;
 const DEFAULT_AUTH_BRIDGE_PORT = 5199;
 
 function isElectronBinaryExec() {
@@ -86,7 +89,10 @@ function configureChannelUserDataPath() {
     return;
   }
 
-  const isolatedPath = path.join(app.getPath("appData"), `OpenWhispr-${APP_CHANNEL}`);
+  const isolatedPath = path.join(
+    app.getPath("appData"),
+    `${RELEASE_IDENTITY.productName}-${APP_CHANNEL}`
+  );
   app.setPath("userData", isolatedPath);
 }
 
@@ -138,7 +144,9 @@ function getOAuthProtocol() {
   }
 
   return (
-    DEFAULT_OAUTH_PROTOCOL_BY_CHANNEL[APP_CHANNEL] || DEFAULT_OAUTH_PROTOCOL_BY_CHANNEL.production
+    (APP_CHANNEL === "production" && RELEASE_IDENTITY.protocolScheme) ||
+    DEFAULT_OAUTH_PROTOCOL_BY_CHANNEL[APP_CHANNEL] ||
+    DEFAULT_OAUTH_PROTOCOL_BY_CHANNEL.production
   );
 }
 
@@ -237,8 +245,8 @@ if (!gotSingleInstanceLock) {
 const isLiveWindow = (window) => window && !window.isDestroyed();
 
 // Ensure macOS menus use the proper casing for the app name
-if (process.platform === "darwin" && app.getName() !== "OpenWhispr") {
-  app.setName("OpenWhispr");
+if (process.platform === "darwin" && app.getName() !== RELEASE_IDENTITY.productName) {
+  app.setName(RELEASE_IDENTITY.productName);
 }
 
 // Add global error handling for uncaught exceptions
@@ -914,7 +922,7 @@ function startAuthBridgeServer() {
 
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
     res.end(
-      "<html><body><h3>OpenWhispr sign-in complete.</h3><p>You can close this tab.</p></body></html>"
+      `<html><body><h3>${RELEASE_IDENTITY.productName} sign-in complete.</h3><p>You can close this tab.</p></body></html>`
     );
   });
 
