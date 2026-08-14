@@ -379,6 +379,8 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       - name: Verify packaged macOS native binaries
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           APP_PATH=$(ls -d dist/mac*/OpenWhispr.app | head -n1)
           for bin in macos-audio-tap macos-globe-listener macos-fast-paste macos-mic-listener macos-text-monitor macos-media-remote; do
@@ -386,6 +388,13 @@ jobs:
           done
           test -x "$APP_PATH/Contents/Resources/bin/MediaRemoteAdapter.framework/Versions/A/MediaRemoteAdapter" || { echo "Missing in bundle: MediaRemoteAdapter.framework"; exit 1; }
           test -f "$APP_PATH/Contents/Resources/bin/mediaremote-adapter.pl" || { echo "Missing in bundle: mediaremote-adapter.pl"; exit 1; }
+
+          if [ "$MACOS_SIGNING_AVAILABLE" = "true" ]; then
+            codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+            SIGNATURE_DETAILS=$(codesign -dv --verbose=4 "$APP_PATH" 2>&1)
+            grep -F "Authority=Developer ID Application:" <<< "$SIGNATURE_DETAILS"
+            grep -F "TeamIdentifier=$APPLE_TEAM_ID" <<< "$SIGNATURE_DETAILS"
+          fi
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
