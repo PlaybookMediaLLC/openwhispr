@@ -11,5 +11,6 @@ These RFCs design the seven moat features from [VISION.md](../../VISION.md). Eac
 | [0005](0005-on-device-intelligence.md) | On-device intelligence | Draft |
 | [0006](0006-consent-infrastructure.md) | Consent infrastructure | Draft |
 | [0007](0007-connector-breadth.md) | Connector breadth | Draft |
+| [0008](0008-cloud-architecture.md) | Cloud architecture — three zones | Draft |
 
-Dependency order: 0006 (consent) gates 0001. 0001 and 0002 feed 0004. 0004 feeds 0005. 0003 is independent. 0007 widens the input to all of them.
+Dependency order: 0006 (consent) gates 0001. 0001 and 0002 feed 0004. 0004 feeds 0005. 0003 is independent. 0007 widens the input to all of them. 0008 governs where every component runs.
