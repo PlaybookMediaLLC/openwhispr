@@ -23,16 +23,36 @@ jobs:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
           if [ "$EVENT_NAME" = "release" ]; then
-            version="$RELEASE_TAG"
+            tag="$RELEASE_TAG"
           else
-            version=$(gh release view --json tagName -q .tagName)
+            tag=$(gh release view --json tagName -q .tagName)
           fi
+          version="$tag"
           version="${version#v}"
           if ! echo "$version" | grep -qP '^\d+\.\d+\.\d+$'; then
             echo "::error::Invalid version format: $version"
             exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve Linux AppImage asset
+        id: asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          mapfile -t assets < <(
+            gh release view "$RELEASE_TAG" \
+              --json assets \
+              --jq '.assets[].name | select(endswith("-linux-x86_64.AppImage"))'
+          )
+          if [ "${#assets[@]}" -ne 1 ]; then
+            echo "::error::Expected exactly one linux-x86_64 AppImage, found ${#assets[@]}"
+            printf '%s\n' "${assets[@]}"
+            exit 1
+          fi
+          echo "name=${assets[0]}" >> "$GITHUB_OUTPUT"
 
       - name: Check if update needed
         id: check
@@ -46,13 +66,16 @@ jobs:
       - name: Download AppImage and compute hash
         if: steps.check.outputs.skip != 'true'
         id: hash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          version="${{ steps.release.outputs.version }}"
-          url="https://github.com/${{ github.repository }}/releases/download/v${version}/OpenWhispr-${version}-linux-x86_64.AppImage"
-          tmpfile=$(mktemp)
-          curl -fSL --retry 3 --retry-delay 10 "$url" -o "$tmpfile"
+          tmpdir=$(mktemp -d)
+          gh release download "${{ steps.release.outputs.tag }}" \
+            --pattern "${{ steps.asset.outputs.name }}" \
+            --dir "$tmpdir"
+          tmpfile="$tmpdir/${{ steps.asset.outputs.name }}"
           sri="sha256-$(sha256sum "$tmpfile" | cut -d' ' -f1 | xxd -r -p | base64 -w0)"
-          rm "$tmpfile"
+          rm -rf "$tmpdir"
           echo "sri=$sri" >> "$GITHUB_OUTPUT"
 
       - name: Update nix/package.nix
@@ -60,8 +83,26 @@ jobs:
         run: |
           version="${{ steps.release.outputs.version }}"
           hash="${{ steps.hash.outputs.sri }}"
+          asset_name="${{ steps.asset.outputs.name }}"
           sed -i "s|version = \".*\";|version = \"${version}\";|" nix/package.nix
           sed -i "s|hash = \"sha256-.*\";|hash = \"${hash}\";|" nix/package.nix
+          RELEASE_REPOSITORY="${{ github.repository }}" \
+          RELEASE_VERSION="$version" \
+          RELEASE_ASSET_NAME="$asset_name" \
+          node <<'NODE'
+          const fs = require("fs");
+          const file = "nix/package.nix";
+          const repository = process.env.RELEASE_REPOSITORY;
+          const version = process.env.RELEASE_VERSION;
+          const assetName = process.env.RELEASE_ASSET_NAME;
+          const versionedAssetName = assetName.replace(version, "${version}");
+          const nixVersion = "${version}";
+          const url = `https://github.com/${repository}/releases/download/v${nixVersion}/${versionedAssetName}`;
+          const source = fs.readFileSync(file, "utf8");
+          const updated = source.replace(/^\s*url = ".*";$/m, `    url = "${url}";`);
+          if (updated === source) throw new Error("Could not update Nix release URL");
+          fs.writeFileSync(file, updated);
+          NODE
 
       - name: Create pull request
         if: steps.check.outputs.skip != 'true'
