@@ -50,6 +50,7 @@ test("semantic release tooling is pinned outside application dependencies", () =
 test("passing main tests dispatch the signed builder only after a semantic release", () => {
   assert.match(testsWorkflow, /push:\n\s+branches: \[main\]/);
   assert.match(semanticWorkflow, /workflow_run:\n\s+workflows: \["Tests"\]/);
+  assert.match(semanticWorkflow, /github\.event\.workflow_run\.event == 'push'/);
   assert.match(semanticWorkflow, /github\.event\.workflow_run\.conclusion == 'success'/);
   assert.match(semanticWorkflow, /github\.event\.workflow_run\.head_sha/);
   assert.match(semanticWorkflow, /No Tests workflow run exists/);
