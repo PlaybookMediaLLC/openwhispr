@@ -8,6 +8,13 @@ const semanticWorkflow = fs.readFileSync(
   path.join(root, ".github/workflows/semantic-release.yml"),
   "utf8"
 );
+const testsWorkflow = fs.readFileSync(path.join(root, ".github/workflows/tests.yml"), "utf8");
+const dependabotConfig = fs.readFileSync(path.join(root, ".github/dependabot.yml"), "utf8");
+const allWorkflows = fs
+  .readdirSync(path.join(root, ".github/workflows"))
+  .filter((file) => file.endsWith(".yml") || file.endsWith(".yaml"))
+  .map((file) => fs.readFileSync(path.join(root, ".github/workflows", file), "utf8"))
+  .join("\n");
 const releaseWorkflow = fs.readFileSync(path.join(root, ".github/workflows/release.yml"), "utf8");
 const releaseConfig = require("../../.github/semantic-release/release.config.cjs");
 const toolingPackage = require("../../.github/semantic-release/package.json");
@@ -40,13 +47,26 @@ test("semantic release tooling is pinned outside application dependencies", () =
   assert.match(toolingPackage.engines.node, /24/);
 });
 
-test("main pushes dispatch the signed builder only after a semantic release", () => {
-  assert.match(semanticWorkflow, /push:\n\s+branches: \[main\]/);
+test("passing main tests dispatch the signed builder only after a semantic release", () => {
+  assert.match(testsWorkflow, /push:\n\s+branches: \[main\]/);
+  assert.match(semanticWorkflow, /workflow_run:\n\s+workflows: \["Tests"\]/);
+  assert.match(semanticWorkflow, /github\.event\.workflow_run\.conclusion == 'success'/);
+  assert.match(semanticWorkflow, /github\.event\.workflow_run\.head_sha/);
+  assert.match(semanticWorkflow, /No Tests workflow run exists/);
   assert.match(semanticWorkflow, /contents: write/);
   assert.match(semanticWorkflow, /actions: write/);
   assert.match(semanticWorkflow, /steps\.result\.outputs\.released == 'true'/);
   assert.match(semanticWorkflow, /gh workflow run release\.yml/);
   assert.match(semanticWorkflow, /-f reuse_semantic_release=true/);
+});
+
+test("release dependencies and GitHub Actions receive weekly updates", () => {
+  assert.match(dependabotConfig, /directory: "\/\.github\/semantic-release"/);
+  assert.match(dependabotConfig, /package-ecosystem: "github-actions"/);
+  assert.equal((dependabotConfig.match(/interval: "weekly"/g) || []).length, 3);
+  assert.doesNotMatch(allWorkflows, /actions\/(?:checkout|setup-node)@v4/);
+  assert.match(allWorkflows, /actions\/checkout@v7/);
+  assert.match(allWorkflows, /actions\/setup-node@v7/);
 });
 
 test("the signed builder only reuses a matching semantic draft and tag", () => {

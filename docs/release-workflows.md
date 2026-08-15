@@ -2,8 +2,10 @@
 
 ## Automatic releases from main
 
-Every push to `main`, including a merged pull request, runs the **Semantic Release** workflow. It
-analyzes commits since the latest `v*.*.*` tag using the Conventional Commits rules:
+Every push to `main`, including a merged pull request, first runs the **Tests** workflow. A successful
+test run triggers **Semantic Release** for that exact commit; failed or stale commits cannot create a
+tag or draft. Semantic Release analyzes commits since the latest `v*.*.*` tag using the Conventional
+Commits rules:
 
 - `fix:` creates a patch release.
 - `feat:` creates a minor release.
@@ -27,7 +29,8 @@ signing credentials are absent.
 The semantic release tooling and lockfile live under `.github/semantic-release/` so application
 dependency installation and auditing remain independent from release-only tooling. A manual
 **Semantic Release** dispatch defaults to dry-run mode and can be used to inspect the next version
-without creating a tag or release.
+without creating a tag or release. A non-dry manual dispatch is rejected unless the same commit
+already has a successful push-triggered **Tests** run.
 
 If artifact building fails after Semantic Release created its tag and draft, rerun the **Release**
 workflow from that tag with **Reuse semantic release** enabled. The safety checks reject a public
