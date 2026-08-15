@@ -97,11 +97,23 @@ jobs:
         if: steps.current.outputs.is_current == 'true'
         run: npm ci --prefix .github/semantic-release --ignore-scripts --no-audit --no-fund
 
+      - name: Stage generated release commit outside protected main
+        id: branch
+        if: >-
+          steps.current.outputs.is_current == 'true' &&
+          !(github.event_name == 'workflow_dispatch' && inputs.dry_run == true)
+        run: |
+          RELEASE_BRANCH="semantic-release/run-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git checkout -b "$RELEASE_BRANCH"
+          git push origin "HEAD:refs/heads/$RELEASE_BRANCH"
+          echo "name=$RELEASE_BRANCH" >> "$GITHUB_OUTPUT"
+
       - name: Analyze Conventional Commits and prepare release
         if: steps.current.outputs.is_current == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+          SEMANTIC_RELEASE_BRANCH: ${{ steps.branch.outputs.name || 'main' }}
         run: |
           args=(--extends ./.github/semantic-release/release.config.cjs)
           if [ "$DRY_RUN" = "true" ]; then
@@ -147,6 +159,65 @@ jobs:
             echo "tag=$RELEASE_TAG"
           } >> "$GITHUB_OUTPUT"
 
+      - name: Require Tests on the generated release commit
+        id: generated_tests
+        if: steps.result.outputs.released == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_BRANCH: ${{ steps.branch.outputs.name }}
+        run: |
+          GENERATED_SHA=$(git rev-parse HEAD)
+          if [ "$(git rev-parse HEAD^)" != "$RELEASE_SHA" ]; then
+            echo "::error::Generated release commit is not based directly on tested main $RELEASE_SHA."
+            exit 1
+          fi
+
+          gh workflow run tests.yml --ref "$RELEASE_BRANCH"
+          TEST_RUN_ID=""
+          for attempt in $(seq 1 30); do
+            TEST_RUN_ID=$(gh run list \
+              --repo "$GITHUB_REPOSITORY" \
+              --workflow tests.yml \
+              --branch "$RELEASE_BRANCH" \
+              --event workflow_dispatch \
+              --limit 20 \
+              --json databaseId,headSha \
+              --jq ".[] | select(.headSha == \"$GENERATED_SHA\") | .databaseId" \
+              | head -n1)
+            if [ -n "$TEST_RUN_ID" ]; then
+              break
+            fi
+            sleep 2
+          done
+          if [ -z "$TEST_RUN_ID" ]; then
+            echo "::error::Tests workflow did not start for generated release commit $GENERATED_SHA."
+            exit 1
+          fi
+
+          gh run watch "$TEST_RUN_ID" --repo "$GITHUB_REPOSITORY" --exit-status --interval 10
+          echo "Generated release commit $GENERATED_SHA passed Tests run $TEST_RUN_ID."
+          {
+            echo "sha=$GENERATED_SHA"
+            echo "run_id=$TEST_RUN_ID"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Advance protected main to the tested release commit
+        if: steps.result.outputs.released == 'true'
+        env:
+          GENERATED_SHA: ${{ steps.generated_tests.outputs.sha }}
+        run: |
+          git fetch --no-tags origin main
+          if [ "$(git rev-parse origin/main)" != "$RELEASE_SHA" ]; then
+            echo "::error::Main moved after release analysis; refusing to overwrite it."
+            exit 1
+          fi
+          git push origin "$GENERATED_SHA:refs/heads/main"
+          git fetch --no-tags origin main
+          if [ "$(git rev-parse origin/main)" != "$GENERATED_SHA" ]; then
+            echo "::error::Protected main did not advance to tested release commit $GENERATED_SHA."
+            exit 1
+          fi
+
       - name: Dispatch signed multi-platform release
         if: steps.result.outputs.released == 'true'
         env:
@@ -173,3 +244,16 @@ jobs:
             sleep $((attempt * 5))
           done
           exit 1
+
+      - name: Remove incomplete semantic release
+        if: failure() && steps.result.outputs.released == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.result.outputs.tag }}
+        run: gh release delete "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag || true
+
+      - name: Remove temporary release branch
+        if: always() && steps.branch.outputs.name != ''
+        env:
+          RELEASE_BRANCH: ${{ steps.branch.outputs.name }}
+        run: git push origin --delete "$RELEASE_BRANCH" || true

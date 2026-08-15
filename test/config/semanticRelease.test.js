@@ -49,6 +49,7 @@ test("semantic release tooling is pinned outside application dependencies", () =
 
 test("passing main tests dispatch the signed builder only after a semantic release", () => {
   assert.match(testsWorkflow, /push:\n\s+branches: \[main\]/);
+  assert.match(testsWorkflow, /workflow_dispatch:/);
   assert.match(semanticWorkflow, /workflow_run:\n\s+workflows: \["Tests"\]/);
   assert.match(semanticWorkflow, /github\.event\.workflow_run\.event == 'push'/);
   assert.match(semanticWorkflow, /github\.event\.workflow_run\.conclusion == 'success'/);
@@ -56,6 +57,11 @@ test("passing main tests dispatch the signed builder only after a semantic relea
   assert.match(semanticWorkflow, /No Tests workflow run exists/);
   assert.match(semanticWorkflow, /contents: write/);
   assert.match(semanticWorkflow, /actions: write/);
+  assert.match(semanticWorkflow, /semantic-release\/run-\$\{GITHUB_RUN_ID\}/);
+  assert.match(semanticWorkflow, /gh workflow run tests\.yml --ref "\$RELEASE_BRANCH"/);
+  assert.match(semanticWorkflow, /gh run watch "\$TEST_RUN_ID"/);
+  assert.match(semanticWorkflow, /git push origin "\$GENERATED_SHA:refs\/heads\/main"/);
+  assert.match(semanticWorkflow, /Remove temporary release branch/);
   assert.match(semanticWorkflow, /steps\.result\.outputs\.released == 'true'/);
   assert.match(semanticWorkflow, /gh workflow run release\.yml/);
   assert.match(semanticWorkflow, /-f reuse_semantic_release=true/);
