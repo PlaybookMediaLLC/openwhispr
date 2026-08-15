@@ -61,12 +61,16 @@ test("passing main tests dispatch the signed builder only after a semantic relea
   assert.match(semanticWorkflow, /pull-requests: write/);
   assert.match(semanticWorkflow, /semantic-release\/run-\$\{GITHUB_RUN_ID\}/);
   assert.match(semanticWorkflow, /node \.github\/semantic-release\/run\.cjs/);
+  assert.match(semanticWorkflow, /secrets\.RELEASE_PR_TOKEN/);
+  assert.match(semanticWorkflow, /RELEASE_PR_TOKEN is required/);
   assert.match(semanticWorkflow, /gh pr create/);
-  assert.match(semanticWorkflow, /gh workflow run tests\.yml --ref "\$RELEASE_BRANCH"/);
+  assert.match(semanticWorkflow, /--event pull_request/);
+  assert.doesNotMatch(semanticWorkflow, /gh workflow run tests\.yml --ref "\$RELEASE_BRANCH"/);
   assert.match(semanticWorkflow, /gh run watch "\$TEST_RUN_ID"/);
   assert.match(semanticWorkflow, /\.workflowName == "Tests"/);
   assert.match(semanticWorkflow, /Generated Tests run \$TEST_RUN_ID was not attached to release PR/);
-  assert.match(semanticWorkflow, /gh pr merge "\$PR_NUMBER"/);
+  assert.match(semanticWorkflow, /gh pr merge "\$PR_NUMBER".*--auto --merge --delete-branch/);
+  assert.match(semanticWorkflow, /Release PR #\$PR_NUMBER did not merge/);
   assert.match(semanticWorkflow, /git merge-base --is-ancestor "\$GENERATED_SHA" "\$MAIN_SHA"/);
   assert.match(semanticWorkflow, /Remove incomplete semantic release/);
   assert.match(semanticWorkflow, /gh release delete "\$RELEASE_TAG"/);

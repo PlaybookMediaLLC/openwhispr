@@ -164,10 +164,14 @@ jobs:
         id: release_pr
         if: steps.result.outputs.released == 'true'
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASE_PR_TOKEN }}
           RELEASE_BRANCH: ${{ steps.branch.outputs.name }}
           RELEASE_VERSION: ${{ steps.result.outputs.version }}
         run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::RELEASE_PR_TOKEN is required because organization policy blocks GITHUB_TOKEN pull request creation."
+            exit 1
+          fi
           PR_URL=$(gh pr create \
             --repo "$GITHUB_REPOSITORY" \
             --base main \
@@ -184,7 +188,7 @@ jobs:
         id: generated_tests
         if: steps.result.outputs.released == 'true'
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASE_PR_TOKEN }}
           PR_NUMBER: ${{ steps.release_pr.outputs.number }}
           RELEASE_BRANCH: ${{ steps.branch.outputs.name }}
         run: |
@@ -194,14 +198,13 @@ jobs:
             exit 1
           fi
 
-          gh workflow run tests.yml --ref "$RELEASE_BRANCH"
           TEST_RUN_ID=""
           for attempt in $(seq 1 30); do
             TEST_RUN_ID=$(gh run list \
               --repo "$GITHUB_REPOSITORY" \
               --workflow tests.yml \
               --branch "$RELEASE_BRANCH" \
-              --event workflow_dispatch \
+              --event pull_request \
               --limit 20 \
               --json databaseId,headSha \
               --jq ".[] | select(.headSha == \"$GENERATED_SHA\") | .databaseId" \
@@ -240,7 +243,7 @@ jobs:
       - name: Merge the tested release commit through protected main
         if: steps.result.outputs.released == 'true'
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASE_PR_TOKEN }}
           GENERATED_SHA: ${{ steps.generated_tests.outputs.sha }}
           PR_NUMBER: ${{ steps.release_pr.outputs.number }}
         run: |
@@ -249,7 +252,18 @@ jobs:
             echo "::error::Main moved after release analysis; refusing to overwrite it."
             exit 1
           fi
-          gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --merge --delete-branch
+          gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --auto --merge --delete-branch
+          for attempt in $(seq 1 60); do
+            PR_STATE=$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json state --jq .state)
+            if [ "$PR_STATE" = "MERGED" ]; then
+              break
+            fi
+            sleep 5
+          done
+          if [ "$PR_STATE" != "MERGED" ]; then
+            echo "::error::Release PR #$PR_NUMBER did not merge after its required checks passed."
+            exit 1
+          fi
           git fetch --no-tags origin main
           MAIN_SHA=$(git rev-parse origin/main)
           if ! git merge-base --is-ancestor "$GENERATED_SHA" "$MAIN_SHA"; then
@@ -294,7 +308,7 @@ jobs:
       - name: Close incomplete release pull request
         if: failure() && steps.release_pr.outputs.number != ''
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASE_PR_TOKEN }}
           PR_NUMBER: ${{ steps.release_pr.outputs.number }}
         run: gh pr close "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --delete-branch || true
 
