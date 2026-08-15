@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.4](https://github.com/PlaybookMediaLLC/openwhispr/compare/v1.8.3...v1.8.4) (2026-08-15)
+
+
+### Bug Fixes
+
+* **release:** ignore non-push test runs ([bb96299](https://github.com/PlaybookMediaLLC/openwhispr/commit/bb96299d17b83934fae3ae5d366a0c7a87b02f3f))
+
 - **Uploaded and URL-ingested notes remember their speaker detection.** A note created through Upload ran speaker detection but stored none of it — the note now records that diarization ran, the speaker count you chose, and the audio duration, so it behaves like a meeting note when you record into it or resolve participants. An upload with speaker detection off writes nothing, preserving your global speaker setting. Present since upload speaker detection shipped in 1.7.6. (#1610)
 
 ## [1.8.3] - 2026-08-12
