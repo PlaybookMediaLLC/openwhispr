@@ -36,10 +36,11 @@ product name, bundle/application ID, protocol scheme, macOS permission text, art
 GitHub publishing target without committing generated branding files.
 
 Windows and macOS builds use signing secrets when the complete platform secret set is available.
-Forks without those secrets still produce unsigned artifacts. Unsigned artifacts are suitable for
-internal testing but will show operating-system trust warnings and should not be presented as a
-fully trusted public release. The workflow refuses to publish unsigned artifacts unless
-**Allow unsigned release** is explicitly enabled. Draft-only runs do not require that override.
+Forks without those secrets can still exercise unsigned packaging for validation, but unsigned
+Windows installers are withheld from the public GitHub release. Unsigned artifacts show
+operating-system trust warnings and should not be presented as a fully trusted public release. The
+workflow refuses to publish when either signing set is incomplete unless **Allow unsigned release**
+is explicitly enabled. Draft-only runs do not require that override.
 
 Repository administrators must allow GitHub Actions to create releases with `contents: write`.
 Publishing a release also triggers the Nix updater, which discovers the renamed AppImage asset and

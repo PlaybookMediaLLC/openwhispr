@@ -346,7 +346,13 @@ jobs:
 
       - name: Build and Sign Application
         shell: bash
-        run: npm run build:win -- --publish always --config "$RELEASE_CONFIG_PATH"
+        run: |
+          publish_mode=always
+          if [ "$WINDOWS_SIGNING_AVAILABLE" != "true" ]; then
+            echo "::warning::Windows signing secrets are unavailable; building the installer for validation but withholding it from the public release."
+            publish_mode=never
+          fi
+          npm run build:win -- --publish "$publish_mode" --config "$RELEASE_CONFIG_PATH"
         env:
           GH_TOKEN: ${{ github.token }}
           VITE_AUTH_URL: ${{ vars.VITE_AUTH_URL || 'https://auth.openwhispr.com' }}
@@ -489,12 +495,23 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       - name: Verify packaged macOS native binaries
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           APP_PATH=$(find dist -type d -name "$RELEASE_PRODUCT_NAME.app" -print -quit)
           test -n "$APP_PATH" || { echo "Missing packaged app: $RELEASE_PRODUCT_NAME.app"; exit 1; }
           for bin in macos-audio-tap macos-globe-listener macos-fast-paste macos-mic-listener macos-text-monitor macos-media-remote; do
             test -x "$APP_PATH/Contents/Resources/bin/$bin" || { echo "Missing in bundle: $bin"; exit 1; }
           done
+          test -x "$APP_PATH/Contents/Resources/bin/MediaRemoteAdapter.framework/Versions/A/MediaRemoteAdapter" || { echo "Missing in bundle: MediaRemoteAdapter.framework"; exit 1; }
+          test -f "$APP_PATH/Contents/Resources/bin/mediaremote-adapter.pl" || { echo "Missing in bundle: mediaremote-adapter.pl"; exit 1; }
+
+          if [ "$MACOS_SIGNING_AVAILABLE" = "true" ]; then
+            codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+            SIGNATURE_DETAILS=$(codesign -dv --verbose=4 "$APP_PATH" 2>&1)
+            grep -F "Authority=Developer ID Application:" <<< "$SIGNATURE_DETAILS"
+            grep -F "TeamIdentifier=$APPLE_TEAM_ID" <<< "$SIGNATURE_DETAILS"
+          fi
 
       - name: Upload arch-specific update metadata
         env:
