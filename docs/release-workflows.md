@@ -1,5 +1,36 @@
 # Release and upstream workflows
 
+## Automatic releases from main
+
+Every push to `main`, including a merged pull request, runs the **Semantic Release** workflow. It
+analyzes commits since the latest `v*.*.*` tag using the Conventional Commits rules:
+
+- `fix:` creates a patch release.
+- `feat:` creates a minor release.
+- `BREAKING CHANGE:` in the commit body or `!` after the type creates a major release.
+- `build:`, `chore:`, `ci:`, `docs:`, `style:`, `refactor:`, and `test:` do not create a release by
+  default.
+
+Use a Conventional Commit pull request title when the repository uses squash merging. Semantic
+Release updates `package.json` and `package-lock.json`, commits the version with `[skip ci]`, creates
+the matching version tag, and opens a draft GitHub release containing generated release notes. The
+workflow then dispatches the existing **Release** builder at that exact tag.
+
+The builder verifies that the tag points to the dispatched commit and that the existing release is
+still a draft. Linux, Windows, and both macOS architectures must finish successfully before the
+draft is published. macOS artifacts are signed and notarized when the complete Apple secret set is
+available. An unsigned Windows build is exercised but withheld from the public release when Windows
+signing credentials are absent.
+
+The semantic release tooling and lockfile live under `.github/semantic-release/` so application
+dependency installation and auditing remain independent from release-only tooling. A manual
+**Semantic Release** dispatch defaults to dry-run mode and can be used to inspect the next version
+without creating a tag or release.
+
+If artifact building fails after Semantic Release created its tag and draft, rerun the **Release**
+workflow from that tag with **Reuse semantic release** enabled. The safety checks reject a public
+release, a missing draft, or a tag that points at another commit.
+
 ## Release a version under a new product name
 
 The **Release** workflow supports both normal OpenWhispr releases and renamed fork releases.
