@@ -25,14 +25,18 @@ test("semantic-release maps Conventional Commits into versioned draft releases",
   assert.equal(releaseConfig.tagFormat, "v${version}");
   assert.ok(releaseConfig.plugins.includes("@semantic-release/commit-analyzer"));
   assert.ok(releaseConfig.plugins.includes("@semantic-release/release-notes-generator"));
+  assert.equal(pluginOptions("@semantic-release/changelog").changelogFile, "CHANGELOG.md");
+  assert.match(pluginOptions("@semantic-release/changelog").changelogTitle, /## \[Unreleased\]$/);
   assert.equal(pluginOptions("@semantic-release/npm").npmPublish, false);
   assert.equal(pluginOptions("@semantic-release/github").draftRelease, true);
+  assert.ok(pluginOptions("@semantic-release/git").assets.includes("CHANGELOG.md"));
   assert.match(pluginOptions("@semantic-release/git").message, /\[skip ci\]/);
 });
 
 test("semantic release tooling is pinned outside application dependencies", () => {
   assert.equal(applicationPackage.devDependencies?.["semantic-release"], undefined);
   assert.match(toolingPackage.dependencies["semantic-release"], /^\d+\.\d+\.\d+$/);
+  assert.match(toolingPackage.dependencies["@semantic-release/changelog"], /^\d+\.\d+\.\d+$/);
   assert.match(toolingPackage.engines.node, /24/);
 });
 

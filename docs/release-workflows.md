@@ -12,9 +12,11 @@ analyzes commits since the latest `v*.*.*` tag using the Conventional Commits ru
   default.
 
 Use a Conventional Commit pull request title when the repository uses squash merging. Semantic
-Release updates `package.json` and `package-lock.json`, commits the version with `[skip ci]`, creates
-the matching version tag, and opens a draft GitHub release containing generated release notes. The
-workflow then dispatches the existing **Release** builder at that exact tag.
+Release updates `CHANGELOG.md`, `package.json`, and `package-lock.json`, commits the changelog and
+version with `[skip ci]`, creates the matching version tag, and opens a draft GitHub release
+containing the same generated release notes. The workflow then dispatches the existing **Release**
+builder at that exact tag. Existing notes under `## [Unreleased]` are carried into the next release,
+and that section remains ready for additional hand-written notes.
 
 The builder verifies that the tag points to the dispatched commit and that the existing release is
 still a draft. Linux, Windows, and both macOS architectures must finish successfully before the
