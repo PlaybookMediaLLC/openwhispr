@@ -58,6 +58,10 @@ test("passing main tests dispatch the signed builder only after a semantic relea
   assert.match(semanticWorkflow, /contents: write/);
   assert.match(semanticWorkflow, /actions: write/);
   assert.match(semanticWorkflow, /semantic-release\/run-\$\{GITHUB_RUN_ID\}/);
+  assert.match(
+    semanticWorkflow,
+    /GITHUB_REF: refs\/heads\/\$\{\{ steps\.branch\.outputs\.name \|\| 'main' \}\}/
+  );
   assert.match(semanticWorkflow, /gh workflow run tests\.yml --ref "\$RELEASE_BRANCH"/);
   assert.match(semanticWorkflow, /gh run watch "\$TEST_RUN_ID"/);
   assert.match(semanticWorkflow, /git push origin "\$GENERATED_SHA:refs\/heads\/main"/);
