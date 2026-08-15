@@ -38,7 +38,7 @@ test("semantic-release maps Conventional Commits into versioned draft releases",
   assert.equal(pluginOptions("@semantic-release/npm").npmPublish, false);
   assert.equal(pluginOptions("@semantic-release/github").draftRelease, true);
   assert.ok(pluginOptions("@semantic-release/git").assets.includes("CHANGELOG.md"));
-  assert.match(pluginOptions("@semantic-release/git").message, /\[skip ci\]/);
+  assert.doesNotMatch(pluginOptions("@semantic-release/git").message, /\[skip ci\]/);
 });
 
 test("semantic release tooling is pinned outside application dependencies", () => {
@@ -58,13 +58,19 @@ test("passing main tests dispatch the signed builder only after a semantic relea
   assert.match(semanticWorkflow, /No Tests workflow run exists/);
   assert.match(semanticWorkflow, /contents: write/);
   assert.match(semanticWorkflow, /actions: write/);
+  assert.match(semanticWorkflow, /pull-requests: write/);
   assert.match(semanticWorkflow, /semantic-release\/run-\$\{GITHUB_RUN_ID\}/);
   assert.match(semanticWorkflow, /node \.github\/semantic-release\/run\.cjs/);
+  assert.match(semanticWorkflow, /gh pr create/);
   assert.match(semanticWorkflow, /gh workflow run tests\.yml --ref "\$RELEASE_BRANCH"/);
   assert.match(semanticWorkflow, /gh run watch "\$TEST_RUN_ID"/);
-  assert.match(semanticWorkflow, /git push origin "\$GENERATED_SHA:refs\/heads\/main"/);
+  assert.match(semanticWorkflow, /\.workflowName == "Tests"/);
+  assert.match(semanticWorkflow, /Generated Tests run \$TEST_RUN_ID was not attached to release PR/);
+  assert.match(semanticWorkflow, /gh pr merge "\$PR_NUMBER"/);
+  assert.match(semanticWorkflow, /git merge-base --is-ancestor "\$GENERATED_SHA" "\$MAIN_SHA"/);
   assert.match(semanticWorkflow, /Remove incomplete semantic release/);
   assert.match(semanticWorkflow, /gh release delete "\$RELEASE_TAG"/);
+  assert.match(semanticWorkflow, /Close incomplete release pull request/);
   assert.match(semanticWorkflow, /Remove temporary release branch/);
   assert.match(semanticWorkflow, /steps\.result\.outputs\.released == 'true'/);
   assert.match(semanticWorkflow, /gh workflow run release\.yml/);

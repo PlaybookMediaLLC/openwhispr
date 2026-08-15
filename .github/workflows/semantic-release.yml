@@ -16,6 +16,7 @@ on:
 permissions:
   contents: write
   actions: write
+  pull-requests: write
 
 concurrency:
   group: semantic-release-main
@@ -159,11 +160,32 @@ jobs:
             echo "tag=$RELEASE_TAG"
           } >> "$GITHUB_OUTPUT"
 
+      - name: Open protected release pull request
+        id: release_pr
+        if: steps.result.outputs.released == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_BRANCH: ${{ steps.branch.outputs.name }}
+          RELEASE_VERSION: ${{ steps.result.outputs.version }}
+        run: |
+          PR_URL=$(gh pr create \
+            --repo "$GITHUB_REPOSITORY" \
+            --base main \
+            --head "$RELEASE_BRANCH" \
+            --title "chore(release): $RELEASE_VERSION" \
+            --body "Automated semantic-release metadata update. This pull request must pass the required Tests workflow before protected main can advance.")
+          PR_NUMBER=$(gh pr view "$PR_URL" --repo "$GITHUB_REPOSITORY" --json number --jq .number)
+          {
+            echo "number=$PR_NUMBER"
+            echo "url=$PR_URL"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Require Tests on the generated release commit
         id: generated_tests
         if: steps.result.outputs.released == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ steps.release_pr.outputs.number }}
           RELEASE_BRANCH: ${{ steps.branch.outputs.name }}
         run: |
           GENERATED_SHA=$(git rev-parse HEAD)
@@ -195,26 +217,43 @@ jobs:
           fi
 
           gh run watch "$TEST_RUN_ID" --repo "$GITHUB_REPOSITORY" --exit-status --interval 10
+          for attempt in $(seq 1 30); do
+            PR_TEST_RESULT=$(gh pr view "$PR_NUMBER" \
+              --repo "$GITHUB_REPOSITORY" \
+              --json statusCheckRollup \
+              --jq '[.statusCheckRollup[] | select(.name == "tests" and .workflowName == "Tests")][-1].conclusion // empty')
+            if [ "$PR_TEST_RESULT" = "SUCCESS" ]; then
+              break
+            fi
+            sleep 2
+          done
+          if [ "$PR_TEST_RESULT" != "SUCCESS" ]; then
+            echo "::error::Generated Tests run $TEST_RUN_ID was not attached to release PR #$PR_NUMBER."
+            exit 1
+          fi
           echo "Generated release commit $GENERATED_SHA passed Tests run $TEST_RUN_ID."
           {
             echo "sha=$GENERATED_SHA"
             echo "run_id=$TEST_RUN_ID"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Advance protected main to the tested release commit
+      - name: Merge the tested release commit through protected main
         if: steps.result.outputs.released == 'true'
         env:
+          GH_TOKEN: ${{ github.token }}
           GENERATED_SHA: ${{ steps.generated_tests.outputs.sha }}
+          PR_NUMBER: ${{ steps.release_pr.outputs.number }}
         run: |
           git fetch --no-tags origin main
           if [ "$(git rev-parse origin/main)" != "$RELEASE_SHA" ]; then
             echo "::error::Main moved after release analysis; refusing to overwrite it."
             exit 1
           fi
-          git push origin "$GENERATED_SHA:refs/heads/main"
+          gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --merge --delete-branch
           git fetch --no-tags origin main
-          if [ "$(git rev-parse origin/main)" != "$GENERATED_SHA" ]; then
-            echo "::error::Protected main did not advance to tested release commit $GENERATED_SHA."
+          MAIN_SHA=$(git rev-parse origin/main)
+          if ! git merge-base --is-ancestor "$GENERATED_SHA" "$MAIN_SHA"; then
+            echo "::error::Protected main $MAIN_SHA does not contain tested release commit $GENERATED_SHA."
             exit 1
           fi
 
@@ -251,6 +290,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ steps.result.outputs.tag }}
         run: gh release delete "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag || true
+
+      - name: Close incomplete release pull request
+        if: failure() && steps.release_pr.outputs.number != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ steps.release_pr.outputs.number }}
+        run: gh pr close "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --delete-branch || true
 
       - name: Remove temporary release branch
         if: always() && steps.branch.outputs.name != ''
