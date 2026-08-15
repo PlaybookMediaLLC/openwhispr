@@ -114,16 +114,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
           SEMANTIC_RELEASE_BRANCH: ${{ steps.branch.outputs.name || 'main' }}
-          # env-ci derives the active branch from GITHUB_REF in Actions. Keep it
-          # aligned with the staging branch so semantic-release can publish the
-          # generated commit there before that exact tested SHA advances main.
-          GITHUB_REF: refs/heads/${{ steps.branch.outputs.name || 'main' }}
         run: |
           args=(--extends ./.github/semantic-release/release.config.cjs)
           if [ "$DRY_RUN" = "true" ]; then
             args+=(--dry-run)
           fi
-          .github/semantic-release/node_modules/.bin/semantic-release "${args[@]}"
+          node .github/semantic-release/run.cjs "${args[@]}"
 
       - name: Detect created semantic release
         id: result

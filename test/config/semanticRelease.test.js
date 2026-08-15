@@ -17,6 +17,7 @@ const allWorkflows = fs
   .join("\n");
 const releaseWorkflow = fs.readFileSync(path.join(root, ".github/workflows/release.yml"), "utf8");
 const releaseConfig = require("../../.github/semantic-release/release.config.cjs");
+const { semanticReleaseEnvironment } = require("../../.github/semantic-release/run.cjs");
 const toolingPackage = require("../../.github/semantic-release/package.json");
 const applicationPackage = require("../../package.json");
 
@@ -58,10 +59,7 @@ test("passing main tests dispatch the signed builder only after a semantic relea
   assert.match(semanticWorkflow, /contents: write/);
   assert.match(semanticWorkflow, /actions: write/);
   assert.match(semanticWorkflow, /semantic-release\/run-\$\{GITHUB_RUN_ID\}/);
-  assert.match(
-    semanticWorkflow,
-    /GITHUB_REF: refs\/heads\/\$\{\{ steps\.branch\.outputs\.name \|\| 'main' \}\}/
-  );
+  assert.match(semanticWorkflow, /node \.github\/semantic-release\/run\.cjs/);
   assert.match(semanticWorkflow, /gh workflow run tests\.yml --ref "\$RELEASE_BRANCH"/);
   assert.match(semanticWorkflow, /gh run watch "\$TEST_RUN_ID"/);
   assert.match(semanticWorkflow, /git push origin "\$GENERATED_SHA:refs\/heads\/main"/);
@@ -71,6 +69,17 @@ test("passing main tests dispatch the signed builder only after a semantic relea
   assert.match(semanticWorkflow, /steps\.result\.outputs\.released == 'true'/);
   assert.match(semanticWorkflow, /gh workflow run release\.yml/);
   assert.match(semanticWorkflow, /-f reuse_semantic_release=true/);
+});
+
+test("semantic-release sees the staging branch as the active GitHub ref", () => {
+  const env = semanticReleaseEnvironment({
+    GITHUB_REF: "refs/heads/main",
+    SEMANTIC_RELEASE_BRANCH: "semantic-release/run-123-1",
+  });
+
+  assert.equal(env.GITHUB_REF, "refs/heads/semantic-release/run-123-1");
+  assert.equal(env.SEMANTIC_RELEASE_BRANCH, "semantic-release/run-123-1");
+  assert.throws(() => semanticReleaseEnvironment({}), /SEMANTIC_RELEASE_BRANCH is required/);
 });
 
 test("release dependencies and GitHub Actions receive weekly updates", () => {
