@@ -30,7 +30,9 @@ env:
 
 jobs:
   release:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.event == 'push' && github.event.workflow_run.conclusion == 'success')
     name: Analyze commits and dispatch signed release
     runs-on: ubuntu-latest
     timeout-minutes: 15
