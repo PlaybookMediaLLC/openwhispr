@@ -1,0 +1,143 @@
+name: Semantic Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Analyze Conventional Commits without creating a tag or draft release"
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: semantic-release-main
+  cancel-in-progress: false
+
+env:
+  RELEASE_PRODUCT_NAME: ${{ vars.RELEASE_PRODUCT_NAME || 'OpenWhispr' }}
+  RELEASE_APP_ID: ${{ vars.RELEASE_APP_ID || 'com.playbookmedia.openwhispr' }}
+  RELEASE_PROTOCOL_SCHEME: ${{ vars.RELEASE_PROTOCOL_SCHEME || 'playbook-openwhispr' }}
+  RELEASE_ALLOW_UNSIGNED: ${{ vars.RELEASE_ALLOW_UNSIGNED || 'true' }}
+
+jobs:
+  release:
+    name: Analyze commits and dispatch signed release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      released: ${{ steps.result.outputs.released }}
+      version: ${{ steps.result.outputs.version }}
+      tag: ${{ steps.result.outputs.tag }}
+
+    steps:
+      - name: Checkout full release history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require the current main commit
+        id: current
+        run: |
+          git fetch --no-tags origin main
+          MAIN_SHA=$(git rev-parse origin/main)
+          if [ "$GITHUB_SHA" != "$MAIN_SHA" ]; then
+            echo "::notice::Skipping stale main run for $GITHUB_SHA; current main is $MAIN_SHA."
+            echo "is_current=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_current=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Node.js
+        if: steps.current.outputs.is_current == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: .github/semantic-release/package-lock.json
+
+      - name: Install pinned semantic-release tooling
+        if: steps.current.outputs.is_current == 'true'
+        run: npm ci --prefix .github/semantic-release --ignore-scripts --no-audit --no-fund
+
+      - name: Analyze Conventional Commits and prepare release
+        if: steps.current.outputs.is_current == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+        run: |
+          args=(--extends ./.github/semantic-release/release.config.cjs)
+          if [ "$DRY_RUN" = "true" ]; then
+            args+=(--dry-run)
+          fi
+          .github/semantic-release/node_modules/.bin/semantic-release "${args[@]}"
+
+      - name: Detect created semantic release
+        id: result
+        if: steps.current.outputs.is_current == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "released=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          RELEASE_TAG=$(git tag --points-at HEAD --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n1 || true)
+          if [ -z "$RELEASE_TAG" ]; then
+            echo "released=false" >> "$GITHUB_OUTPUT"
+            echo "No release-worthy Conventional Commits were found."
+            exit 0
+          fi
+
+          RELEASE_VERSION=${RELEASE_TAG#v}
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          if [ "$RELEASE_VERSION" != "$PACKAGE_VERSION" ]; then
+            echo "::error::Semantic tag $RELEASE_TAG does not match package version $PACKAGE_VERSION."
+            exit 1
+          fi
+
+          RELEASE_IS_DRAFT=$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)
+          if [ "$RELEASE_IS_DRAFT" != "true" ]; then
+            echo "::error::Semantic release $RELEASE_TAG must be a draft until signed artifacts finish."
+            exit 1
+          fi
+
+          {
+            echo "released=true"
+            echo "version=$RELEASE_VERSION"
+            echo "tag=$RELEASE_TAG"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Dispatch signed multi-platform release
+        if: steps.result.outputs.released == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.result.outputs.tag }}
+          RELEASE_VERSION: ${{ steps.result.outputs.version }}
+        run: |
+          for attempt in 1 2 3; do
+            if gh workflow run release.yml \
+              --repo "$GITHUB_REPOSITORY" \
+              --ref "$RELEASE_TAG" \
+              -f version="$RELEASE_VERSION" \
+              -f product_name="$RELEASE_PRODUCT_NAME" \
+              -f app_id="$RELEASE_APP_ID" \
+              -f protocol_scheme="$RELEASE_PROTOCOL_SCHEME" \
+              -f publish_release=true \
+              -f allow_unsigned_release="$RELEASE_ALLOW_UNSIGNED" \
+              -f validate_only=false \
+              -f reuse_semantic_release=true; then
+              echo "Dispatched signed release workflow for $RELEASE_TAG."
+              exit 0
+            fi
+            echo "Dispatch attempt $attempt failed; retrying."
+            sleep $((attempt * 5))
+          done
+          exit 1

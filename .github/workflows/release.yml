@@ -40,6 +40,11 @@ on:
         required: true
         default: false
         type: boolean
+      reuse_semantic_release:
+        description: "Reuse the existing tag and draft created by semantic-release"
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: write # Required for creating releases
@@ -52,6 +57,7 @@ env:
   RELEASE_CONFIG_PATH: electron-builder.release.generated.json
   RELEASE_REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
   RELEASE_VALIDATE_ONLY: ${{ github.event_name == 'workflow_dispatch' && inputs.validate_only || false }}
+  RELEASE_REUSE_SEMANTIC: ${{ github.event_name == 'workflow_dispatch' && inputs.reuse_semantic_release || false }}
 
 concurrency:
   group: release-${{ github.ref }}
@@ -88,13 +94,37 @@ jobs:
             echo "::error::MICROSOFT_CALENDAR_CLIENT_ID is required for release builds"
             exit 1
           fi
+          release_exists=false
           if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "::error::Release $RELEASE_TAG already exists. Delete the incomplete draft or choose a new version before retrying."
-            exit 1
+            release_exists=true
+            if [ "$RELEASE_REUSE_SEMANTIC" != "true" ]; then
+              echo "::error::Release $RELEASE_TAG already exists. Delete the incomplete draft or choose a new version before retrying."
+              exit 1
+            fi
+            if [ "$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" != "true" ]; then
+              echo "::error::Semantic release $RELEASE_TAG must still be a draft before artifact publication."
+              exit 1
+            fi
           fi
+
+          tag_exists=false
           if [ "$EVENT_NAME" = "workflow_dispatch" ] && \
              git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then
-            echo "::error::Tag $RELEASE_TAG already exists. Manual releases must use a new version."
+            tag_exists=true
+            if [ "$RELEASE_REUSE_SEMANTIC" != "true" ]; then
+              echo "::error::Tag $RELEASE_TAG already exists. Manual releases must use a new version."
+              exit 1
+            fi
+            git fetch --force origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"
+            TAG_SHA=$(git rev-parse "$RELEASE_TAG^{commit}")
+            if [ "$TAG_SHA" != "$GITHUB_SHA" ]; then
+              echo "::error::Semantic release tag $RELEASE_TAG points to $TAG_SHA instead of workflow commit $GITHUB_SHA."
+              exit 1
+            fi
+          fi
+          if [ "$RELEASE_REUSE_SEMANTIC" = "true" ] && \
+             { [ "$release_exists" != "true" ] || [ "$tag_exists" != "true" ]; }; then
+            echo "::error::Semantic release handoff requires both an existing draft release and its matching tag."
             exit 1
           fi
           if [ "$EVENT_NAME" = "workflow_dispatch" ] && \
@@ -131,11 +161,16 @@ jobs:
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.validate_only != true }}
     runs-on: ubuntu-latest
     steps:
-      - name: Create empty draft release
+      - name: Reuse semantic draft or create empty draft release
         env:
           GH_TOKEN: ${{ github.token }}
           EVENT_NAME: ${{ github.event_name }}
         run: |
+          if [ "$RELEASE_REUSE_SEMANTIC" = "true" ]; then
+            gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json tagName,isDraft,url
+            exit 0
+          fi
+
           args=(
             "$RELEASE_TAG"
             --repo "$GITHUB_REPOSITORY"
