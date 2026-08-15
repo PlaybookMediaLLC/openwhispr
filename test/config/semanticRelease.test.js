@@ -61,6 +61,8 @@ test("passing main tests dispatch the signed builder only after a semantic relea
   assert.match(semanticWorkflow, /gh workflow run tests\.yml --ref "\$RELEASE_BRANCH"/);
   assert.match(semanticWorkflow, /gh run watch "\$TEST_RUN_ID"/);
   assert.match(semanticWorkflow, /git push origin "\$GENERATED_SHA:refs\/heads\/main"/);
+  assert.match(semanticWorkflow, /Remove incomplete semantic release/);
+  assert.match(semanticWorkflow, /gh release delete "\$RELEASE_TAG"/);
   assert.match(semanticWorkflow, /Remove temporary release branch/);
   assert.match(semanticWorkflow, /steps\.result\.outputs\.released == 'true'/);
   assert.match(semanticWorkflow, /gh workflow run release\.yml/);
