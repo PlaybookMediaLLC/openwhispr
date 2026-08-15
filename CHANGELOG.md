@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.5](https://github.com/PlaybookMediaLLC/openwhispr/compare/v1.8.4...v1.8.5) (2026-08-15)
+
+
+### Bug Fixes
+
+* **ci:** skip signing checks for pull requests ([bd073df](https://github.com/PlaybookMediaLLC/openwhispr/commit/bd073dfcd5c9efe4264221f80b25826f72daf08e))
+* **release:** analyze staged release branch ([8f5394e](https://github.com/PlaybookMediaLLC/openwhispr/commit/8f5394ea6d9416fa3f9ca4ba37dd21db5511413f))
+* **release:** authenticate protected PR automation ([b5442df](https://github.com/PlaybookMediaLLC/openwhispr/commit/b5442dfc0295f46d3af138f27f821b25ef56667c))
+* **release:** enforce tested generated commits on main ([669045d](https://github.com/PlaybookMediaLLC/openwhispr/commit/669045d6eb3bdce6c7c8b410646e9bcdd70a2bd1))
+* **release:** launch with staged GitHub ref ([c10badd](https://github.com/PlaybookMediaLLC/openwhispr/commit/c10baddb9bd87c87c09fdcfccd4396b4fa26e379))
+* **release:** merge metadata through protected PR ([87c3449](https://github.com/PlaybookMediaLLC/openwhispr/commit/87c3449af397c67aa17c43d27acc6e602c7a6a40))
+
 ## [1.8.4](https://github.com/PlaybookMediaLLC/openwhispr/compare/v1.8.3...v1.8.4) (2026-08-15)
 
 
