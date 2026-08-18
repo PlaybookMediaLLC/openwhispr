@@ -1,0 +1,135 @@
+#!/usr/bin/env bash
+
+# Local development CLI for openwhispr. One command spins up everything.
+# Modeled on screenshot-studio's bin/studio. Fork-owned file: upstream
+# never touches bin/, so upstream merges stay clean.
+
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT_DIR"
+
+RED="$(printf '\033[31m')"
+GREEN="$(printf '\033[32m')"
+YELLOW="$(printf '\033[33m')"
+RESET="$(printf '\033[0m')"
+
+ok()   { printf '%sok%s   %s\n' "$GREEN" "$RESET" "$1"; }
+warn() { printf '%swarn%s %s\n' "$YELLOW" "$RESET" "$1"; }
+err()  { printf '%sfail%s %s\n' "$RED" "$RESET" "$1"; }
+
+required_node_major() {
+  tr -d '[:space:]' <.nvmrc | sed 's/^v//' | cut -d. -f1
+}
+
+check_node() {
+  local want have
+  want="$(required_node_major)"
+  if ! command -v node >/dev/null; then
+    err "node is not installed. Install Node ${want} (see .nvmrc)."
+    return 1
+  fi
+  have="$(node --version | sed 's/^v//' | cut -d. -f1)"
+  if [[ "$have" != "$want" ]]; then
+    err "node v${have} found, but .nvmrc wants v${want}. Run: nvm use || mise use node@${want}"
+    return 1
+  fi
+  ok "node v$(node --version | sed 's/^v//') matches .nvmrc"
+}
+
+ensure_env() {
+  if [[ ! -f .env ]]; then
+    cp .env.example .env
+    warn ".env created from .env.example. Add API keys when you need cloud features."
+  else
+    ok ".env exists"
+  fi
+}
+
+doctor() {
+  local failed=0
+  check_node || failed=1
+  command -v npm >/dev/null && ok "npm $(npm --version)" || { err "npm is missing"; failed=1; }
+  command -v git >/dev/null && ok "git" || { err "git is missing"; failed=1; }
+  if [[ "$(uname)" == "Darwin" ]]; then
+    if command -v swiftc >/dev/null; then
+      ok "swiftc (native macOS helpers can compile)"
+    else
+      err "swiftc is missing. Run: xcode-select --install"
+      failed=1
+    fi
+  else
+    command -v cc >/dev/null && ok "C compiler" || { err "no C compiler for native helpers"; failed=1; }
+  fi
+  [[ -f .env ]] && ok ".env exists" || warn ".env is missing. Run: bin/openwhispr setup"
+  [[ -d node_modules ]] && ok "node_modules installed" || warn "node_modules missing. Run: bin/openwhispr setup"
+  if [[ -d resources/bin && -n "$(ls -A resources/bin 2>/dev/null)" ]]; then
+    ok "downloaded runtimes present in resources/bin"
+  else
+    warn "no downloaded runtimes yet. setup or the first 'up' fetches them"
+  fi
+  [[ "$failed" == 0 ]] && echo "Doctor: ready." || { echo "Doctor: fix the failures above."; exit 1; }
+}
+
+setup() {
+  check_node
+  ensure_env
+  echo "Installing dependencies..."
+  npm install
+  echo "Compiling native helpers and downloading runtimes (first run is slow)..."
+  npm run predev:main
+  ok "setup complete. Run: bin/openwhispr up"
+}
+
+up() {
+  [[ -f .env && -d node_modules ]] || setup
+  # npm run dev compiles natives and fetches runtimes through predev:main,
+  # then starts the vite renderer and electron main concurrently.
+  exec npm run dev
+}
+
+status() {
+  [[ -f .env ]] && ok ".env" || warn ".env missing"
+  [[ -d node_modules ]] && ok "node_modules" || warn "node_modules missing"
+  if [[ -d resources/bin ]]; then
+    echo "resources/bin:"
+    ls -1 resources/bin | sed 's/^/  /'
+  else
+    warn "resources/bin missing (no runtimes downloaded)"
+  fi
+}
+
+check() {
+  npm run lint
+  npm run typecheck
+  npm test
+}
+
+usage() {
+  cat <<'EOF'
+openwhispr local development CLI
+
+Usage: bin/openwhispr <command>
+
+  up       Start the full dev environment (setup runs first if needed)
+  setup    Install deps, compile native helpers, download runtimes, create .env
+  doctor   Diagnose the machine: node version, toolchain, env, runtimes
+  status   Show what is installed and downloaded
+  check    Run lint, typecheck, and tests
+  clean    Remove build output (keeps downloaded runtimes)
+  reset    clean + remove node_modules (keeps downloaded runtimes)
+  help     Show this help
+EOF
+}
+
+case "${1:-help}" in
+  up|dev) up ;;
+  setup) setup ;;
+  doctor) doctor ;;
+  status) status ;;
+  check) check ;;
+  clean) npm run clean ;;
+  reset) npm run clean; rm -rf node_modules; ok "reset done. Run: bin/openwhispr setup" ;;
+  help|-h|--help) usage ;;
+  *) err "unknown command: $1"; usage; exit 1 ;;
+esac
