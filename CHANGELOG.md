@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+# [1.9.0](https://github.com/PlaybookMediaLLC/openwhispr/compare/v1.8.5...v1.9.0) (2026-08-18)
+
+
+### Features
+
+* **dev:** add bin/openwhispr local development CLI ([2f95fde](https://github.com/PlaybookMediaLLC/openwhispr/commit/2f95fde8ac31587c0d55c5c7e5899d61a5fa56dd))
+
 ## [1.8.5](https://github.com/PlaybookMediaLLC/openwhispr/compare/v1.8.4...v1.8.5) (2026-08-15)
 
 
