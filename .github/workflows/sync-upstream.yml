@@ -1,110 +1,71 @@
-name: Sync upstream branch
+name: Sync Upstream
 
+# Nightly fork sync. Fetches OpenWhispr/openwhispr, merges its main into the
+# long-lived "upstream" branch, and opens a PR from "upstream" to main when
+# the branch carries changes that main does not have. A human reviews and
+# merges the PR, so upstream code never lands on main unreviewed.
+# If the merge conflicts, the job fails and a human resolves it on the
+# "upstream" branch.
 on:
   schedule:
-    - cron: "17 6 * * *"
+    # 08:00 UTC = midnight PST.
+    - cron: "0 8 * * *"
   workflow_dispatch:
-    inputs:
-      upstream_repository:
-        description: "GitHub repository to mirror"
-        required: true
-        default: "OpenWhispr/openwhispr"
-        type: string
-      upstream_branch:
-        description: "Branch to mirror into the local upstream branch"
-        required: true
-        default: "main"
-        type: string
-      allow_non_fast_forward:
-        description: "Allow a manual run to replace divergent upstream branch history"
-        required: true
-        default: false
-        type: boolean
 
+# Serialize runs so a manual dispatch cannot race the scheduled push.
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: true
+
+# contents: write pushes the "upstream" branch.
+# pull-requests: write opens the sync PR.
 permissions:
   contents: write
-
-concurrency:
-  group: sync-upstream-branch
-  cancel-in-progress: false
-
-env:
-  UPSTREAM_REPOSITORY: ${{ github.event_name == 'workflow_dispatch' && inputs.upstream_repository || 'OpenWhispr/openwhispr' }}
-  UPSTREAM_BRANCH: ${{ github.event_name == 'workflow_dispatch' && inputs.upstream_branch || 'main' }}
-  ALLOW_NON_FAST_FORWARD: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_non_fast_forward || false }}
-  TARGET_BRANCH: upstream
-  SYNC_TOKEN_CONFIGURED: ${{ secrets.UPSTREAM_SYNC_TOKEN != '' }}
+  pull-requests: write
 
 jobs:
   sync:
+    name: Merge Upstream & Open PR
     runs-on: ubuntu-latest
     steps:
-      - name: Check out the fork
-        uses: actions/checkout@v7
+      # persist-credentials stays on (the default): the push step
+      # authenticates with the persisted GITHUB_TOKEN.
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          # Full history: the merge needs the common ancestor.
           fetch-depth: 0
-          token: ${{ secrets.UPSTREAM_SYNC_TOKEN || github.token }}
 
-      - name: Validate upstream source
-        shell: bash
+      - name: Merge upstream/main into the upstream branch
         run: |
-          if ! echo "$UPSTREAM_REPOSITORY" | grep -qE '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$'; then
-            echo "::error::upstream_repository must have the form owner/repository"
-            exit 1
-          fi
-          if ! git check-ref-format --branch "$UPSTREAM_BRANCH" >/dev/null; then
-            echo "::error::Invalid upstream branch: $UPSTREAM_BRANCH"
-            exit 1
-          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add upstream https://github.com/OpenWhispr/openwhispr.git
+          git fetch upstream main
+          # Reuse the existing branch, or create it from main on the first run.
+          git checkout upstream || git checkout -b upstream
+          git merge --no-edit upstream/main
+          git push origin upstream
 
-      - name: Fetch upstream branch
-        shell: bash
+      - name: Open PR against main
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          git remote add source "https://github.com/${UPSTREAM_REPOSITORY}.git"
-          git fetch --no-tags source \
-            "+refs/heads/${UPSTREAM_BRANCH}:refs/remotes/source/${UPSTREAM_BRANCH}"
-
-      - name: Mirror into the upstream branch
-        shell: bash
-        run: |
-          source_ref="refs/remotes/source/${UPSTREAM_BRANCH}"
-          target_ref="refs/heads/${TARGET_BRANCH}"
-
-          git fetch --no-tags origin \
-            "+${target_ref}:refs/remotes/origin/${TARGET_BRANCH}" || true
-          expected=$(git rev-parse --verify "refs/remotes/origin/${TARGET_BRANCH}" 2>/dev/null || true)
-
-          if [ "$SYNC_TOKEN_CONFIGURED" != "true" ]; then
-            if [ -z "$expected" ]; then
-              echo "::error::Creating an exact upstream mirror requires the UPSTREAM_SYNC_TOKEN secret because canonical upstream contains GitHub workflow files."
-              exit 1
-            fi
-            if ! git diff --quiet "$expected" "$source_ref" -- .github/workflows; then
-              echo "::error::Canonical upstream changed GitHub workflow files. Configure UPSTREAM_SYNC_TOKEN with Contents and Workflows write access before syncing."
-              exit 1
-            fi
+          # No delta against main: nothing to open.
+          if git diff --quiet origin/main upstream; then
+            echo "upstream branch matches main; no PR needed."
+            exit 0
           fi
-
-          if [ -n "$expected" ]; then
-            if git merge-base --is-ancestor "$expected" "$source_ref"; then
-              git push origin "${source_ref}:${target_ref}"
-            elif [ "$ALLOW_NON_FAST_FORWARD" = "true" ]; then
-              git push \
-                --force-with-lease="${target_ref}:${expected}" \
-                origin "${source_ref}:${target_ref}"
-            else
-              echo "::error::The upstream branch contains divergent history. Run manually with allow_non_fast_forward enabled only if replacing it is intentional."
-              exit 1
-            fi
-          else
-            git push origin "${source_ref}:${target_ref}"
+          # An open sync PR already tracks the branch; the push above updated it.
+          if [ "$(gh pr list --head upstream --base main --state open --json number --jq length)" != "0" ]; then
+            echo "Sync PR already open; branch updated."
+            exit 0
           fi
-
-          synced_commit=$(git rev-parse "$source_ref")
-          {
-            echo "### Upstream branch synchronized"
-            echo ""
-            echo "- Source: \`${UPSTREAM_REPOSITORY}@${UPSTREAM_BRANCH}\`"
-            echo "- Target: \`${GITHUB_REPOSITORY}@${TARGET_BRANCH}\`"
-            echo "- Commit: \`${synced_commit}\`"
-          } >> "$GITHUB_STEP_SUMMARY"
+          # REST, not "gh pr create": the GraphQL createPullRequest mutation
+          # rejects the Actions token with "Resource not accessible by
+          # integration" even with pull-requests: write granted.
+          gh api "repos/${GITHUB_REPOSITORY}/pulls" \
+            -f base=main \
+            -f head=upstream \
+            -f title="chore: sync upstream $(date -u +%F)" \
+            -f body="Nightly merge of OpenWhispr/openwhispr main into the upstream branch. Review the diff, then merge."

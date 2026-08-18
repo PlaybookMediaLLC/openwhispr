@@ -865,3 +865,5 @@ const { t } = useTranslation();
 - Cloud model selection
 - Batch transcription
 - Export formats beyond clipboard
+
+Fork note: this is a PlaybookMediaLLC fork. Read FORK.md before you change code. <!-- fork-seam -->
