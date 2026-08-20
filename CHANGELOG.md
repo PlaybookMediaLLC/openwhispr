@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+# [1.10.0](https://github.com/PlaybookMediaLLC/openwhispr/compare/v1.9.0...v1.10.0) (2026-08-20)
+
+
+### Bug Fixes
+
+* **agent:** recognize localized wake words ([#1604](https://github.com/PlaybookMediaLLC/openwhispr/issues/1604)) ([0e681cc](https://github.com/PlaybookMediaLLC/openwhispr/commit/0e681cc8030d906709609bb48f065b48fe54d528))
+* **audio:** stop classifying phone microphones as built-in ([#1515](https://github.com/PlaybookMediaLLC/openwhispr/issues/1515)) ([0ee3779](https://github.com/PlaybookMediaLLC/openwhispr/commit/0ee37795c45f348a60f2223a8d24c0d1ff538c40))
+* **calendar:** backfill stripped Microsoft occurrences from series master ([#1665](https://github.com/PlaybookMediaLLC/openwhispr/issues/1665)) ([1874614](https://github.com/PlaybookMediaLLC/openwhispr/commit/187461421873f31a27b5894031f4b011c0433e2b))
+* **calendar:** recognize Teams /meet/ and Zoom webinar join URLs ([#1692](https://github.com/PlaybookMediaLLC/openwhispr/issues/1692)) ([896d4dd](https://github.com/PlaybookMediaLLC/openwhispr/commit/896d4dde26e0b4755385d9400a8654f18b4239ea))
+* **dictation:** Keep text when reasoning returns blank output ([#1645](https://github.com/PlaybookMediaLLC/openwhispr/issues/1645)) ([7f08a49](https://github.com/PlaybookMediaLLC/openwhispr/commit/7f08a4917ba968128f12d03d6e39436eeb097317)), closes [#1618](https://github.com/PlaybookMediaLLC/openwhispr/issues/1618) [#1616](https://github.com/PlaybookMediaLLC/openwhispr/issues/1616) [#1618](https://github.com/PlaybookMediaLLC/openwhispr/issues/1618) [#1616](https://github.com/PlaybookMediaLLC/openwhispr/issues/1616)
+* **dictionary:** treat agent names as present ignoring case ([#1639](https://github.com/PlaybookMediaLLC/openwhispr/issues/1639)) ([23fd77d](https://github.com/PlaybookMediaLLC/openwhispr/commit/23fd77d51a2e304c1244f7f4e4055100e9fe2136))
+* **gpu:** gate the cleanup GPU banner on local inference ([#1591](https://github.com/PlaybookMediaLLC/openwhispr/issues/1591)) ([fbd267a](https://github.com/PlaybookMediaLLC/openwhispr/commit/fbd267a2affc9b709c0f802bc00b897b297739e3))
+* **i18n:** map zh-Hans and zh-Hant locale tags to Chinese UI ([#1691](https://github.com/PlaybookMediaLLC/openwhispr/issues/1691)) ([ab9ae9c](https://github.com/PlaybookMediaLLC/openwhispr/commit/ab9ae9c8e5b063e5cba2a3bf6aae5a7451a3e650))
+* **linux:** map GNOME punctuation hotkeys to X11 keysyms ([#1658](https://github.com/PlaybookMediaLLC/openwhispr/issues/1658)) ([a103a4d](https://github.com/PlaybookMediaLLC/openwhispr/commit/a103a4db921b2b9e68dd3aec816f0ff4d4f77e21))
+* **linux:** treat Ptyxis and GNOME Console as terminals for paste ([#1659](https://github.com/PlaybookMediaLLC/openwhispr/issues/1659)) ([36f0c40](https://github.com/PlaybookMediaLLC/openwhispr/commit/36f0c4060863b88135cd351b82e306c8a5514763))
+* **network:** classify EAI_AGAIN and EPIPE as known cloud errors ([#1682](https://github.com/PlaybookMediaLLC/openwhispr/issues/1682)) ([56a7ed3](https://github.com/PlaybookMediaLLC/openwhispr/commit/56a7ed3fbf5a47097b105faf8f5028e6029adf34))
+* **notes:** escape control characters in mirrored note frontmatter ([#1646](https://github.com/PlaybookMediaLLC/openwhispr/issues/1646)) ([6c72923](https://github.com/PlaybookMediaLLC/openwhispr/commit/6c72923fb90d01fad6e0f1b7d554a1a41270071a)), closes [#1643](https://github.com/PlaybookMediaLLC/openwhispr/issues/1643)
+* **notes:** isolate per-file unlink failures in mirror deleteNote ([#1649](https://github.com/PlaybookMediaLLC/openwhispr/issues/1649)) ([438a614](https://github.com/PlaybookMediaLLC/openwhispr/commit/438a614a45d96ee58dcf70f096581819a774e0f0)), closes [#1648](https://github.com/PlaybookMediaLLC/openwhispr/issues/1648)
+* **notes:** parse share-dialog email domains without leftover whitespace ([#1683](https://github.com/PlaybookMediaLLC/openwhispr/issues/1683)) ([aad659f](https://github.com/PlaybookMediaLLC/openwhispr/commit/aad659f2da14e81f817e871ba3760195eaafb36f))
+* **notes:** strip wrapping quotes from generated titles ([#1640](https://github.com/PlaybookMediaLLC/openwhispr/issues/1640)) ([ac5b089](https://github.com/PlaybookMediaLLC/openwhispr/commit/ac5b089875a5710ba9c47e1c5645d4466f739af6))
+* **notification:** skip Google Calendar time blocks without attendees ([#1615](https://github.com/PlaybookMediaLLC/openwhispr/issues/1615)) ([ca3a297](https://github.com/PlaybookMediaLLC/openwhispr/commit/ca3a297e23af91db10f9adca1dfff36b968f626d))
+* **notification:** skip Microsoft and Apple Calendar time blocks without attendees ([#1696](https://github.com/PlaybookMediaLLC/openwhispr/issues/1696)) ([33f8630](https://github.com/PlaybookMediaLLC/openwhispr/commit/33f86301f387bcf21349854ad36c384420cbab7b))
+* **reasoning:** strip nested think blocks without leftover tags ([#1619](https://github.com/PlaybookMediaLLC/openwhispr/issues/1619)) ([78b77dd](https://github.com/PlaybookMediaLLC/openwhispr/commit/78b77dde7adcb2428b9cdca328414eaf42e389a9))
+* **reasoning:** track think-tag depth in streamed chat deltas ([#1644](https://github.com/PlaybookMediaLLC/openwhispr/issues/1644)) ([5abb004](https://github.com/PlaybookMediaLLC/openwhispr/commit/5abb004445672ae6fd77155c80654ca241dfdc02))
+* **snippets:** handle nullish and partial settings in getDictionaryHintWords ([#1671](https://github.com/PlaybookMediaLLC/openwhispr/issues/1671)) ([#1672](https://github.com/PlaybookMediaLLC/openwhispr/issues/1672)) ([7de403e](https://github.com/PlaybookMediaLLC/openwhispr/commit/7de403ece65e3809c548ad254b542e2c8771c40f))
+* **translation:** treat whitespace-only chain results as empty ([#1618](https://github.com/PlaybookMediaLLC/openwhispr/issues/1618)) ([f80d8f4](https://github.com/PlaybookMediaLLC/openwhispr/commit/f80d8f49a7564653e3aee6d94185d8352645c1a2))
+* **updater:** stop automatic update checks when the App updates toggle is off — fixes [#1605](https://github.com/PlaybookMediaLLC/openwhispr/issues/1605) ([#1662](https://github.com/PlaybookMediaLLC/openwhispr/issues/1662)) ([a880f25](https://github.com/PlaybookMediaLLC/openwhispr/commit/a880f2594beee73947ae8c26b30f0c44736bf20a))
+* **voice-agent:** support extraction when completionMarker is empty or omitted ([#1586](https://github.com/PlaybookMediaLLC/openwhispr/issues/1586)) ([#1587](https://github.com/PlaybookMediaLLC/openwhispr/issues/1587)) ([2f31383](https://github.com/PlaybookMediaLLC/openwhispr/commit/2f31383521cac9f431ab9ff3e1159730f6efeb03))
+* **wayland:** auto paste not working on non-QWERTY layouts. ([#1525](https://github.com/PlaybookMediaLLC/openwhispr/issues/1525)) ([13ae95e](https://github.com/PlaybookMediaLLC/openwhispr/commit/13ae95e62dce5eb441ac0bf6d81672dcd748311f)), closes [hyprwm/Hyprland#14099](https://github.com/hyprwm/Hyprland/issues/14099) [#494](https://github.com/PlaybookMediaLLC/openwhispr/issues/494)
+
+
+### Features
+
+* add shortcut to add a note to folder ([#1650](https://github.com/PlaybookMediaLLC/openwhispr/issues/1650)) ([b3a8368](https://github.com/PlaybookMediaLLC/openwhispr/commit/b3a8368b732ddb57ef68827cd65d2bb3dc0477b5))
+
 # [1.9.0](https://github.com/PlaybookMediaLLC/openwhispr/compare/v1.8.5...v1.9.0) (2026-08-18)
 
 
