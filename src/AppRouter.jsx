@@ -3,19 +3,25 @@ import { useTranslation } from "react-i18next";
 import App from "./App.jsx";
 import AuthenticationStep from "./components/AuthenticationStep.tsx";
 import MeetingNotificationOverlay from "./components/MeetingNotificationOverlay.tsx";
-import TranscriptionPreviewOverlay from "./components/TranscriptionPreviewOverlay.tsx";
 import UpdateNotificationOverlay from "./components/UpdateNotificationOverlay.tsx";
 import WindowControls from "./components/WindowControls.tsx";
+import BackgroundModelDownloadTray from "./components/onboarding/BackgroundModelDownloadTray.tsx";
 import { Card, CardContent } from "./components/ui/card.tsx";
+import { LEGACY_ONBOARDING_STEP_KEY, ONBOARDING_SESSION_KEY } from "./components/onboarding/flow";
 import { useAuth } from "./hooks/useAuth";
 import { useTheme } from "./hooks/useTheme";
 import { usePolicyStore } from "./stores/policyStore";
 import { isControlPanelWindow } from "./utils/windowContext.ts";
 import { distribution } from "./config/distribution.ts";
 
+// Either marker means the flow is mid-way: the legacy step key is kept for
+// back-compat, the v2 session is what the rebuilt flow actually persists.
+const isOnboardingInProgress = () =>
+  localStorage.getItem(LEGACY_ONBOARDING_STEP_KEY) !== null ||
+  localStorage.getItem(ONBOARDING_SESSION_KEY) !== null;
+
 const ControlPanel = React.lazy(() => import("./components/ControlPanel.tsx"));
 const OnboardingFlow = React.lazy(() => import("./components/OnboardingFlow.tsx"));
-const AgentOverlay = React.lazy(() => import("./components/AgentOverlay.tsx"));
 
 export default function AppRouter() {
   useTheme();
@@ -27,10 +33,6 @@ export default function AppRouter() {
 
   if (params.includes("update-notification=true")) {
     return <UpdateNotificationOverlay />;
-  }
-
-  if (params.includes("transcription-preview=true")) {
-    return <TranscriptionPreviewOverlay />;
   }
 
   return <MainApp />;
@@ -52,14 +54,11 @@ function MainApp() {
   const [isLoading, setIsLoading] = useState(true);
   const [postOnboardingSettingsSection, setPostOnboardingSettingsSection] = useState(undefined);
 
-  const isAgentPanel = window.location.search.includes("agent=true");
-  const isControlPanel = !isAgentPanel && isControlPanelWindow();
-  const isDictationPanel = !isControlPanel && !isAgentPanel;
+  const isControlPanel = isControlPanelWindow();
+  const isDictationPanel = !isControlPanel;
 
   useEffect(() => {
-    if (isAgentPanel) {
-      import("./components/AgentOverlay.tsx").catch(() => {});
-    } else if (isControlPanel) {
+    if (isControlPanel) {
       import("./components/ControlPanel.tsx").catch(() => {});
 
       if (!localStorage.getItem("onboardingCompleted")) {
@@ -71,12 +70,12 @@ function MainApp() {
     // the previous account's rows while validation is still running. A failed
     // (guest/offline) resolution also counts as settled: canSync() then no-ops
     // because no validated auth context exists.
-    if (!isAgentPanel && autoSyncReady) {
+    if (autoSyncReady) {
       import("./services/SyncService.js")
         .then(({ syncService }) => syncService.startAutoSync())
         .catch(() => {});
     }
-  }, [autoSyncReady, isAgentPanel, isControlPanel]);
+  }, [autoSyncReady, isControlPanel]);
 
   useEffect(() => {
     if (!authLoaded) return;
@@ -85,7 +84,7 @@ function MainApp() {
     const authSkipped =
       localStorage.getItem("authenticationSkipped") === "true" ||
       localStorage.getItem("skipAuth") === "true";
-    const onboardingInProgress = localStorage.getItem("onboardingCurrentStep") !== null;
+    const onboardingInProgress = isOnboardingInProgress();
     const isReturningUser =
       !onboardingCompleted && isSignedIn && !isGracePeriodOnly && !onboardingInProgress;
 
@@ -112,6 +111,38 @@ function MainApp() {
     setIsLoading(false);
   }, [authLoaded, isControlPanel, isDictationPanel, isGracePeriodOnly, isSignedIn]);
 
+  useEffect(() => {
+    if (!isControlPanel) return;
+    // Fast path: a user who already finished onboarding can never enter the
+    // compact flow, so show the control panel immediately instead of holding
+    // it hidden behind auth/policy resolution. Fresh installs and mid-flow
+    // restarts fall through to the effect below, preserving the no-flash
+    // guarantee for windows that will enter compact onboarding mode.
+    const completed = localStorage.getItem("onboardingCompleted") === "true";
+    if (completed && !isOnboardingInProgress()) {
+      void window.electronAPI?.setOnboardingWindowMode?.("restore");
+    }
+  }, [isControlPanel]);
+
+  useEffect(() => {
+    if (!isControlPanel || isLoading || isWaitingForPolicyStart || showOnboarding) return;
+    // The main process waits for this renderer decision before showing the
+    // control panel, preventing a fresh install from flashing at 1200×800
+    // before the compact onboarding mode is applied.
+    void window.electronAPI?.setOnboardingWindowMode?.("restore");
+  }, [isControlPanel, isLoading, isWaitingForPolicyStart, showOnboarding]);
+
+  useEffect(() => {
+    if (isLoading || isWaitingForPolicyStart) return;
+
+    const onboardingCompleted = localStorage.getItem("onboardingCompleted") === "true";
+    const normalAppVisible = onboardingCompleted && (!isControlPanel || !showOnboarding);
+    // Main starts fail-closed. Only a renderer that has resolved the route and
+    // actually committed the normal app may release global hotkeys and popup
+    // surfaces; fresh installs and onboarding reloads keep them suppressed.
+    void window.electronAPI?.setOnboardingActive?.(!normalAppVisible);
+  }, [isControlPanel, isLoading, isWaitingForPolicyStart, showOnboarding]);
+
   const handleOnboardingComplete = (options) => {
     if (options?.openSettings) {
       setPostOnboardingSettingsSection("transcription");
@@ -119,17 +150,6 @@ function MainApp() {
     setShowOnboarding(false);
     localStorage.setItem("onboardingCompleted", "true");
   };
-
-  // The agent waits for auth resolution so account policy can fail closed;
-  // guests still render once the signed-out state resolves.
-  if (isAgentPanel) {
-    if (!authLoaded || isWaitingForPolicyStart) return <LoadingFallback />;
-    return (
-      <Suspense fallback={<LoadingFallback />}>
-        <AgentOverlay />
-      </Suspense>
-    );
-  }
 
   // isLoading clears once the onboarding effect has run, which itself waits
   // for authLoaded — and authLoaded terminates even when the session cannot
@@ -142,6 +162,7 @@ function MainApp() {
     return (
       <Suspense fallback={<LoadingFallback />}>
         <OnboardingFlow onComplete={handleOnboardingComplete} />
+        <BackgroundModelDownloadTray />
       </Suspense>
     );
   }
@@ -174,6 +195,7 @@ function MainApp() {
                   }}
                   onAuthComplete={() => setNeedsReauth(false)}
                   onNeedsVerification={() => {}}
+                  embedded
                 />
               </CardContent>
             </Card>
@@ -186,6 +208,7 @@ function MainApp() {
   return isControlPanel ? (
     <Suspense fallback={<LoadingFallback />}>
       <ControlPanel initialSettingsSection={postOnboardingSettingsSection} />
+      <BackgroundModelDownloadTray />
     </Suspense>
   ) : (
     <App />

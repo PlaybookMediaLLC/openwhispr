@@ -57,6 +57,14 @@ export function isSecureHttpEndpoint(url: string): boolean {
   }
 }
 
+export function hasExactHostname(url: string, expectedHostname: string): boolean {
+  try {
+    return new URL(url).hostname.toLowerCase() === expectedHostname.trim().toLowerCase();
+  } catch {
+    return false;
+  }
+}
+
 const AZURE_HOST_SUFFIXES = [
   ".openai.azure.com",
   ".cognitiveservices.azure.com",

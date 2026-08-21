@@ -1,43 +1,20 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { createRendererServer, installBrowserGlobals } = require("../lib/rendererTestHarness");
+const { loadAudioManager: loadAudioManagerHarness } = require("./harness/audioManager");
 
-// audioManager pulls in the whole renderer graph, so every test here needs the
-// same store/service stubs. `settingsKey` names the globalThis slot each test
-// swaps its settings through, keeping the module cache per-test isolated.
+// The shared harness supplies the renderer-graph stubs; this wrapper adds the
+// no-op instance surface every manager in this suite needs.
 async function loadAudioManager(t, { cachePrefix, settingsKey }) {
-  const { window } = installBrowserGlobals(t);
-  const vite = await createRendererServer(t, {
+  const { window, vite, setSettings, createManager } = await loadAudioManagerHarness(t, {
     cachePrefix,
-    mockModules: {
-      "/utils/logger": "export default { debug() {}, info() {}, warn() {}, error() {} };",
-      "/stores/settingsStore": `
-        export const getSettings = () => globalThis.${settingsKey};
-        export const getEffectiveCleanupModel = () => null;
-        export const isCloudCleanupMode = () => false;
-        export const isCloudDictationAgentMode = () => false;
-        export const isCloudTranslationMode = () => false;
-      `,
-      "/services/ReasoningService": "export default class ReasoningService {};",
-      "/services/SyncService.js": "export const syncService = {};",
-      "/lib/auth": "export const withSessionRefresh = (fn) => fn();",
-      "/utils/permissions": "export const isAccessibilitySkipped = () => false;",
-    },
+    settingsKey,
   });
-  t.after(() => {
-    delete globalThis[settingsKey];
-  });
-
-  const AudioManager = (await vite.ssrLoadModule("/helpers/audioManager.js")).default;
   return {
     window,
     vite,
-    setSettings: (settings) => {
-      globalThis[settingsKey] = settings;
-    },
-    // Prototype-only instance: the constructor wires up media devices we don't need.
+    setSettings,
     createManager: (overrides = {}) =>
-      Object.assign(Object.create(AudioManager.prototype), {
+      createManager({
         getEffectiveSttLanguage: () => "auto",
         getTranscriptionModel: () => "whisper-1",
         getAPIKey: async () => "test-key",
@@ -340,11 +317,7 @@ test("self-hosted mode is never hijacked by a leftover proxied provider", async 
   }
 
   assert.deepEqual(proxyCalls, { mistral: 0, xai: 0, corti: 0 });
-  assert.equal(
-    fetched.every((e) => e.startsWith("https://stt.internal.example.com")),
-    true,
-    `unexpected endpoints: ${fetched.join(", ")}`
-  );
+  assert.deepEqual(fetched, Array(3).fill("https://stt.internal.example.com/audio/transcriptions"));
 });
 
 // A self-hosted URL on an Azure host is a real population: migrateProviderSettings

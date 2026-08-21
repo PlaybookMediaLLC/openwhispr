@@ -28,6 +28,10 @@ const Slug = z
   .string()
   .trim()
   .regex(/^[a-z0-9][a-z0-9-]{1,63}$/);
+const WindowsSafeDirectory = z
+  .string()
+  .trim()
+  .regex(/^[A-Za-z0-9][A-Za-z0-9_-]{1,63}$/);
 const HttpUrl = z
   .string()
   .trim()
@@ -58,6 +62,7 @@ export const DistributionSchema = z
     protocolScheme: ProtocolScheme,
     executableName: Slug,
     runtimeNamespace: Slug,
+    windowsSafeCacheDirectory: WindowsSafeDirectory,
     supportEmail: z.string().trim().email(),
     cloudDisplayName: z.string().trim().min(1),
     services: z.object({

@@ -105,6 +105,12 @@ require("dotenv").config({
   override: false,
 });
 
+// Chromium's Windows-only occlusion tracker misclassifies the always-on-top
+// transparent pill as occluded, throttling its renderer and jittering animations.
+if (process.platform === "win32") {
+  app.commandLine.appendSwitch("disable-features", "CalculateNativeWinOcclusion");
+}
+
 // Fix transparent window flickering on Linux: --enable-transparent-visuals requires
 // the compositor to set up an ARGB visual before any windows are created.
 // --disable-gpu-compositing prevents GPU compositing conflicts with the compositor.
@@ -293,6 +299,10 @@ const AppleCalendarManager = require("./src/helpers/appleCalendarManager");
 const CalendarReminderScheduler = require("./src/helpers/calendarReminderScheduler");
 const MeetingProcessDetector = require("./src/helpers/meetingProcessDetector");
 const AudioActivityDetector = require("./src/helpers/audioActivityDetector");
+const {
+  collectAudioCaptureHelperPids,
+  createExcludedProcessIdProvider,
+} = require("./src/helpers/electronProcessIds");
 const AudioTapManager = require("./src/helpers/audioTapManager");
 const LinuxPortalAudioManager = require("./src/helpers/linuxPortalAudioManager");
 const WindowsLoopbackAudioManager = require("./src/helpers/windowsLoopbackAudioManager");
@@ -467,7 +477,17 @@ function initializeCoreManagers() {
   meetingDetectionEngine = new MeetingDetectionEngine(
     calendarReminderScheduler,
     new MeetingProcessDetector(),
-    new AudioActivityDetector(),
+    new AudioActivityDetector(
+      // The capture-helper managers are created a few lines below; the provider
+      // is only invoked on mic events, long after initialization completes.
+      createExcludedProcessIdProvider(() =>
+        collectAudioCaptureHelperPids([
+          audioTapManager,
+          linuxPortalAudioManager,
+          windowsLoopbackAudioManager,
+        ])
+      )
+    ),
     windowManager,
     databaseManager
   );
@@ -1035,23 +1055,6 @@ async function startApp() {
     await flushPendingNoteDeepLink();
   }
 
-  // Create agent window (hidden) and set up agent hotkey
-  await windowManager.createAgentWindow();
-
-  const agentHotkeyCallback = () => {
-    if (hotkeyManager.isInListeningMode()) return;
-    windowManager.toggleAgentOverlay();
-  };
-  windowManager._agentHotkeyCallback = agentHotkeyCallback;
-
-  const savedAgentKey = environmentManager.getAgentKey?.() || "";
-  if (savedAgentKey) {
-    const result = await hotkeyManager.registerSlot("agent", savedAgentKey, agentHotkeyCallback);
-    if (!result.success) {
-      debugLogger.warn("Failed to restore agent hotkey", { hotkey: savedAgentKey }, "hotkey");
-    }
-  }
-
   // Set up voice agent hotkey (dictation routed straight to the dictation
   // agent, bypassing cleanup)
   const voiceAgentHotkeyCallback = () => {
@@ -1101,6 +1104,8 @@ async function startApp() {
   // Set up meeting mode hotkey
   const meetingHotkeyCallback = () => {
     if (hotkeyManager.isInListeningMode()) return;
+    // Fail closed during onboarding, like every other hotkey slot.
+    if (!windowManager.isMeetingInputAllowed()) return;
     debugLogger.info("Meeting hotkey triggered", {}, "meeting");
     meetingDetectionEngine?.startManualMeeting();
   };
@@ -1286,7 +1291,9 @@ async function startApp() {
       // Handle dictation if Globe/Fn is one of the dictation hotkeys
       const dictationUsesGlobe = hotkeyManager.getSlotHotkeys("dictation").some(isGlobeLikeHotkey);
       if (dictationUsesGlobe) {
-        if (mainWindowLive) {
+        if (mainWindowLive && windowManager.isDictationProcessing()) {
+          debugLogger?.debug("[Globe] Ignored — dictation processing");
+        } else if (mainWindowLive) {
           // Capture target app PID BEFORE showing the overlay
           if (textEditMonitor) textEditMonitor.captureTargetPid();
           const activationMode = windowManager.getActivationMode();
@@ -1316,24 +1323,20 @@ async function startApp() {
         }
       }
 
-      // Check agent and voice agent slots for Globe/Fn key
-      const agentUsesGlobe = hotkeyManager.getSlotHotkeys("agent").some(isGlobeLikeHotkey);
+      // Check voice agent slot for Globe/Fn key
       const voiceAgentUsesGlobe = hotkeyManager
         .getSlotHotkeys("voiceAgent")
         .some(isGlobeLikeHotkey);
       const translationUsesGlobe = hotkeyManager
         .getSlotHotkeys("translation")
         .some(isGlobeLikeHotkey);
-      if (agentUsesGlobe) {
-        windowManager.toggleAgentOverlay();
-      }
       if (voiceAgentUsesGlobe) {
         windowManager.sendToggleVoiceAgent();
       }
       if (translationUsesGlobe) {
         windowManager.sendToggleTranslation();
       }
-      if (!agentUsesGlobe && !voiceAgentUsesGlobe && !translationUsesGlobe && !dictationUsesGlobe) {
+      if (!voiceAgentUsesGlobe && !translationUsesGlobe && !dictationUsesGlobe) {
         debugLogger?.debug("[Globe] Ignored — hotkey is not GLOBE", { currentHotkey });
       }
     });
@@ -1349,15 +1352,21 @@ async function startApp() {
       if (hotkeyManager.getSlotHotkeys("dictation").some(isGlobeLikeHotkey)) {
         const activationMode = windowManager.getActivationMode();
         if (activationMode === "push") {
-          globeKeyDownTime = 0;
-          globeLastStopTime = Date.now();
-          if (globeKeyIsRecording) {
-            globeKeyIsRecording = false;
-            debugLogger?.debug("[Globe] Stopping dictation (push release)");
-            windowManager.sendStopDictation();
+          if (globeKeyDownTime === 0 && !globeKeyIsRecording) {
+            // The press was ignored (dictation was processing); releasing it
+            // must not cancel preparation or hide the thinking pill.
+            debugLogger?.debug("[Globe] Release without a registered press — ignored");
           } else {
-            windowManager.sendCancelDictationPreparation();
-            windowManager.hideDictationPanel();
+            globeKeyDownTime = 0;
+            globeLastStopTime = Date.now();
+            if (globeKeyIsRecording) {
+              globeKeyIsRecording = false;
+              debugLogger?.debug("[Globe] Stopping dictation (push release)");
+              windowManager.sendStopDictation();
+            } else {
+              windowManager.sendCancelDictationPreparation();
+              windowManager.hideDictationPanel();
+            }
           }
         }
       }
@@ -1401,10 +1410,7 @@ async function startApp() {
     let rightModActiveKey = null;
 
     globeKeyManager.on("right-modifier-down", async (modifier) => {
-      // Check agent and voice agent slots for right-modifier
-      if (hotkeyManager.slotHasHotkey("agent", modifier)) {
-        windowManager.toggleAgentOverlay();
-      }
+      // Check voice agent slot for right-modifier
       if (hotkeyManager.slotHasHotkey("voiceAgent", modifier)) {
         windowManager.sendToggleVoiceAgent();
       }
@@ -1414,6 +1420,7 @@ async function startApp() {
 
       if (!hotkeyManager.slotHasHotkey("dictation", modifier)) return;
       if (!isLiveWindow(windowManager.mainWindow)) return;
+      if (windowManager.isDictationProcessing()) return;
 
       const activationMode = windowManager.getActivationMode();
       if (textEditMonitor) textEditMonitor.captureTargetPid();
@@ -1444,15 +1451,21 @@ async function startApp() {
 
         const activationMode = windowManager.getActivationMode();
         if (activationMode === "push" && (!rightModActiveKey || rightModActiveKey === modifier)) {
-          rightModActiveKey = null;
-          rightModDownTime = 0;
-          rightModLastStopTime = Date.now();
-          if (rightModIsRecording) {
-            rightModIsRecording = false;
-            windowManager.sendStopDictation();
+          if (rightModDownTime === 0 && !rightModIsRecording) {
+            // The press was ignored (dictation was processing); releasing it
+            // must not cancel preparation or hide the thinking pill.
+            debugLogger?.debug("[RightMod] Release without a registered press — ignored");
           } else {
-            windowManager.sendCancelDictationPreparation();
-            windowManager.hideDictationPanel();
+            rightModActiveKey = null;
+            rightModDownTime = 0;
+            rightModLastStopTime = Date.now();
+            if (rightModIsRecording) {
+              rightModIsRecording = false;
+              windowManager.sendStopDictation();
+            } else {
+              windowManager.sendCancelDictationPreparation();
+              windowManager.hideDictationPanel();
+            }
           }
         }
       }
@@ -1469,7 +1482,7 @@ async function startApp() {
       }
     });
 
-    const MAC_NATIVE_HOTKEY_SLOTS = ["dictation", "agent", "voiceAgent", "translation"];
+    const MAC_NATIVE_HOTKEY_SLOTS = ["dictation", "voiceAgent", "translation"];
     const syncMacNativeHotkeyConfiguration = () => {
       globeKeyManager.setConfiguration(
         hotkeyManager.getMacNativeListenerConfig(MAC_NATIVE_HOTKEY_SLOTS)
@@ -1486,9 +1499,6 @@ async function startApp() {
       if (hotkeyManager.isInListeningMode && hotkeyManager.isInListeningMode()) return;
       if (!isMouseButtonHotkey(button)) return;
 
-      if (hotkeyManager.slotHasHotkey("agent", button)) {
-        windowManager.toggleAgentOverlay();
-      }
       if (hotkeyManager.slotHasHotkey("voiceAgent", button)) {
         windowManager.sendToggleVoiceAgent();
       }
@@ -1498,6 +1508,7 @@ async function startApp() {
 
       if (!hotkeyManager.slotHasHotkey("dictation", button)) return;
       if (!isLiveWindow(windowManager.mainWindow)) return;
+      if (windowManager.isDictationProcessing()) return;
 
       const activationMode = windowManager.getActivationMode();
       if (textEditMonitor) textEditMonitor.captureTargetPid();
@@ -1535,15 +1546,21 @@ async function startApp() {
         activationMode === "push" &&
         (!mouseButtonActiveButton || mouseButtonActiveButton === button)
       ) {
-        mouseButtonActiveButton = null;
-        mouseButtonDownTime = 0;
-        mouseButtonLastStopTime = Date.now();
-        if (mouseButtonIsRecording) {
-          mouseButtonIsRecording = false;
-          windowManager.sendStopDictation();
+        if (mouseButtonDownTime === 0 && !mouseButtonIsRecording) {
+          // The press was ignored (dictation was processing); releasing it
+          // must not cancel preparation or hide the thinking pill.
+          debugLogger?.debug("[MouseButton] Release without a registered press — ignored");
         } else {
-          windowManager.sendCancelDictationPreparation();
-          windowManager.hideDictationPanel();
+          mouseButtonActiveButton = null;
+          mouseButtonDownTime = 0;
+          mouseButtonLastStopTime = Date.now();
+          if (mouseButtonIsRecording) {
+            mouseButtonIsRecording = false;
+            windowManager.sendStopDictation();
+          } else {
+            windowManager.sendCancelDictationPreparation();
+            windowManager.hideDictationPanel();
+          }
         }
       }
     });
@@ -1610,8 +1627,8 @@ async function startApp() {
     const nativeKeyManager = isWindows ? windowsKeyManager : linuxKeyManager;
     debugLogger.debug("[Push-to-Talk] Native key listener setup starting");
 
-    // Dictation supports push-to-talk and needs the overlay window; agent/meeting
-    // drive other windows (matching their globalShortcut callbacks and macOS).
+    // Dictation supports push-to-talk and needs the overlay window; meeting
+    // drives other windows (matching their globalShortcut callbacks and macOS).
     const dispatchNativeKeyDown = (key) => {
       if (hotkeyManager.slotHasHotkey("dictation", key)) {
         if (!isLiveWindow(windowManager.mainWindow)) return;
@@ -1626,10 +1643,10 @@ async function startApp() {
         windowManager.sendToggleVoiceAgent();
       } else if (hotkeyManager.slotHasHotkey("translation", key)) {
         windowManager.sendToggleTranslation();
-      } else if (hotkeyManager.slotHasHotkey("agent", key)) {
-        if (!hotkeyManager.isInListeningMode()) windowManager.toggleAgentOverlay();
       } else if (hotkeyManager.slotHasHotkey("meeting", key)) {
-        if (!hotkeyManager.isInListeningMode()) meetingDetectionEngine?.startManualMeeting();
+        if (!hotkeyManager.isInListeningMode() && windowManager.isMeetingInputAllowed()) {
+          meetingDetectionEngine?.startManualMeeting();
+        }
       }
     };
 
@@ -1875,12 +1892,6 @@ function performSyncTeardown() {
   if (distributionExtensionHost) {
     distributionExtensionHost.stop().catch(() => {});
     distributionExtensionHost = null;
-  }
-  if (windowManager && isLiveWindow(windowManager.agentWindow)) {
-    windowManager.agentWindow.destroy();
-  }
-  if (windowManager && isLiveWindow(windowManager.transcriptionPreviewWindow)) {
-    windowManager.transcriptionPreviewWindow.destroy();
   }
   if (hotkeyManager) {
     hotkeyManager.unregisterAll();
