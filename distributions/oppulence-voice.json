@@ -7,6 +7,7 @@
   "protocolScheme": "oppulence-voice",
   "executableName": "oppulence-voice",
   "runtimeNamespace": "oppulence-voice",
+  "windowsSafeCacheDirectory": "OppulenceVoice",
   "supportEmail": "support@oppulence.com",
   "cloudDisplayName": "OpenWhispr Cloud",
   "services": {

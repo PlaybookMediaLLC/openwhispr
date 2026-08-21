@@ -14,17 +14,13 @@ const SLOT_CONFIG = {
     path: `/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/${DISTRIBUTION.runtimeNamespace}/`,
     name: `${DISTRIBUTION.productName} Toggle`,
   },
-  agent: {
-    path: `/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/${DISTRIBUTION.runtimeNamespace}-agent/`,
-    name: `${DISTRIBUTION.productName} Agent`,
-  },
   meeting: {
     path: `/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/${DISTRIBUTION.runtimeNamespace}-meeting/`,
     name: `${DISTRIBUTION.productName} Meeting`,
   },
   voiceAgent: {
     path: `/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/${DISTRIBUTION.runtimeNamespace}-voice-agent/`,
-    name: `${DISTRIBUTION.productName} Voice Agent`,
+    name: `${DISTRIBUTION.productName} Voice Assistant`,
   },
   translation: {
     path: `/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/${DISTRIBUTION.runtimeNamespace}-translation/`,
@@ -132,7 +128,6 @@ class GnomeShortcutManager {
   constructor() {
     this.bus = null;
     this.dictationCallback = null;
-    this.agentCallback = null;
     this.meetingCallback = null;
     this.voiceAgentCallback = null;
     this.translationCallback = null;
@@ -153,16 +148,6 @@ class GnomeShortcutManager {
     return process.env.XDG_SESSION_TYPE === "wayland";
   }
 
-  /**
-   * Set or update the agent callback after initial D-Bus service initialisation.
-   * This supports the case where the dictation hotkey is set up first and the
-   * agent callback is only available later (after agent window creation).
-   */
-  setAgentCallback(callback) {
-    this.agentCallback = callback;
-    debugLogger.log("[GnomeShortcut] Agent callback registered");
-  }
-
   setMeetingCallback(callback) {
     this.meetingCallback = callback;
     debugLogger.log("[GnomeShortcut] Meeting callback registered");
@@ -176,6 +161,34 @@ class GnomeShortcutManager {
   setTranslationCallback(callback) {
     this.translationCallback = callback;
     debugLogger.log("[GnomeShortcut] Translation callback registered");
+  }
+
+  // Older builds persisted a gsettings keybinding for the removed chat-agent
+  // slot; its dbus-send command targets a method this app no longer exports,
+  // so the entry errors silently forever and squats its key. Prune it once.
+  removeRetiredAgentKeybinding() {
+    const retiredPath =
+      "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/openwhispr-agent/";
+    try {
+      const existing = this.getExistingKeybindings();
+      if (!existing.includes(retiredPath)) return;
+      const remaining = existing.filter((p) => p !== retiredPath);
+      const bindingsStr = remaining.length ? "['" + remaining.join("', '") + "']" : "[]";
+      execFileSync(
+        "gsettings",
+        ["set", "org.gnome.settings-daemon.plugins.media-keys", "custom-keybindings", bindingsStr],
+        { stdio: "pipe" }
+      );
+      execFileSync("gsettings", ["reset-recursively", `${KEYBINDING_SCHEMA}:${retiredPath}`], {
+        stdio: "pipe",
+      });
+      debugLogger.log("[GnomeShortcut] Removed retired chat-agent keybinding");
+    } catch (err) {
+      debugLogger.log(
+        "[GnomeShortcut] Failed to remove retired chat-agent keybinding:",
+        err.message
+      );
+    }
   }
 
   async initDBusService(dictationCallback) {
@@ -202,11 +215,6 @@ class GnomeShortcutManager {
               this.dictationCallback();
             }
           },
-          ToggleAgent: () => {
-            if (this.agentCallback) {
-              this.agentCallback();
-            }
-          },
           ToggleMeeting: () => {
             if (this.meetingCallback) {
               this.meetingCallback();
@@ -228,7 +236,6 @@ class GnomeShortcutManager {
           name: DBUS_INTERFACE,
           methods: {
             Toggle: ["", ""],
-            ToggleAgent: ["", ""],
             ToggleMeeting: ["", ""],
             ToggleVoiceAgent: ["", ""],
             ToggleTranslation: ["", ""],
@@ -237,6 +244,7 @@ class GnomeShortcutManager {
       );
 
       debugLogger.log("[GnomeShortcut] D-Bus service initialized successfully");
+      this.removeRetiredAgentKeybinding();
       return true;
     } catch (err) {
       debugLogger.log("[GnomeShortcut] Failed to initialize D-Bus service:", err.message);
@@ -272,7 +280,6 @@ class GnomeShortcutManager {
 
     const SLOT_DBUS_METHOD = {
       dictation: "Toggle",
-      agent: "ToggleAgent",
       meeting: "ToggleMeeting",
       voiceAgent: "ToggleVoiceAgent",
       translation: "ToggleTranslation",

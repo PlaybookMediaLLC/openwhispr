@@ -13,6 +13,7 @@ const TEST_FALLBACK_DISTRIBUTION = {
   protocolScheme: "openwhispr",
   executableName: "open-whispr",
   runtimeNamespace: "openwhispr",
+  windowsSafeCacheDirectory: "OpenWhispr",
   supportEmail: "support@openwhispr.com",
   cloudDisplayName: "OpenWhispr Cloud",
   services: {

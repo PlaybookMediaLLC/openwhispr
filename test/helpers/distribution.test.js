@@ -12,6 +12,7 @@ test("loads the Oppulence Voice distribution with its owned update identity", ()
   assert.equal(distribution.productName, "Oppulence Voice");
   assert.equal(distribution.appId, "engineering.oppulence.voice");
   assert.equal(distribution.protocolScheme, "oppulence-voice");
+  assert.equal(distribution.windowsSafeCacheDirectory, "OppulenceVoice");
   assert.deepEqual(distribution.updates, {
     provider: "github",
     owner: "Oppulence-Engineering",
@@ -42,6 +43,10 @@ test("rejects malformed application and service identities", () => {
   const base = loadDistribution("distributions/openwhispr.json", process.cwd());
 
   assert.throws(() => validateDistribution({ ...base, appId: "not-an-app-id" }), /appId/);
+  assert.throws(
+    () => validateDistribution({ ...base, windowsSafeCacheDirectory: "unsafe cache" }),
+    /windowsSafeCacheDirectory/
+  );
   assert.throws(
     () =>
       validateDistribution({
