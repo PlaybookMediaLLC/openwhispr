@@ -50,4 +50,12 @@ test("rejects malformed application and service identities", () => {
       }),
     /apiUrl/
   );
+  assert.throws(
+    () =>
+      validateDistribution({
+        ...base,
+        linux: { ...base.linux, dbusObjectPath: `/${"A/".repeat(10_000)}` },
+      }),
+    /dbusObjectPath/
+  );
 });

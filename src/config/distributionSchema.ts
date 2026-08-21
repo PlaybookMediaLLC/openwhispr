@@ -34,6 +34,19 @@ const HttpUrl = z
   .url()
   .refine((value) => ["http:", "https:"].includes(new URL(value).protocol), "Expected HTTP URL")
   .transform((value) => value.replace(/\/$/, ""));
+const DbusObjectPath = z
+  .string()
+  .trim()
+  .refine(
+    (value) =>
+      value.startsWith("/") &&
+      value.length > 1 &&
+      value
+        .slice(1)
+        .split("/")
+        .every((segment) => /^[A-Za-z_][A-Za-z0-9_]*$/.test(segment)),
+    "Expected a D-Bus object path"
+  );
 
 export const DistributionSchema = z
   .object({
@@ -74,10 +87,7 @@ export const DistributionSchema = z
         .string()
         .trim()
         .regex(/^[A-Za-z_][A-Za-z0-9_.-]+$/),
-      dbusObjectPath: z
-        .string()
-        .trim()
-        .regex(/^\/(?:[A-Za-z_][A-Za-z0-9_]*\/?)+$/),
+      dbusObjectPath: DbusObjectPath,
       dbusInterface: z
         .string()
         .trim()
