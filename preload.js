@@ -61,6 +61,14 @@ const registerListener = (channel, handlerFactory) => {
 };
 
 contextBridge.exposeInMainWorld("electronAPI", {
+  distributionExtensions: {
+    invoke: (extensionId, method, payload) =>
+      ipcRenderer.invoke("distribution-extension:invoke", extensionId, method, payload),
+    onEvent: registerListener(
+      "distribution-extension:event",
+      (callback) => (_event, data) => callback(data)
+    ),
+  },
   pasteText: (text, options) => ipcRenderer.invoke("paste-text", text, options),
   captureSelectedText: () => ipcRenderer.invoke("capture-selected-text"),
   replaceSelectedText: (sessionId, text, options) =>

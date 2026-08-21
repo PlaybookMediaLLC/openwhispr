@@ -1225,6 +1225,7 @@ class IPCHandlers {
         setImmediate(() => {
           broadcastToWindows("transcriptions-cleared", {
             cleared: result.cleared,
+            ids: result.ids,
           });
         });
       }
@@ -9884,12 +9885,20 @@ class IPCHandlers {
 
         this.databaseManager.setSpeakerMapping(noteId, speakerId, resolvedProfileId, displayName);
         liveSpeakerIdentifier.mapSpeaker(speakerId, resolvedProfileId, displayName, noteId);
+        broadcastToWindows("speaker-mapping-updated", {
+          noteId,
+          speakerId,
+          profileId: resolvedProfileId,
+          displayName,
+          email: email || null,
+        });
         return { success: true, profileId: resolvedProfileId };
       }
     );
 
     ipcMain.handle("remove-speaker-mapping", async (_event, noteId, speakerId) => {
       this.databaseManager.removeSpeakerMapping(noteId, speakerId);
+      broadcastToWindows("speaker-mapping-removed", { noteId, speakerId });
       return { success: true };
     });
 

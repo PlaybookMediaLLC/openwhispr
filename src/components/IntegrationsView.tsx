@@ -24,6 +24,7 @@ import McpIntegrationCard from "./McpIntegrationCard";
 import googleCalendarIcon from "../assets/icons/google-calendar.svg";
 import microsoftCalendarIcon from "../assets/icons/microsoft-calendar.svg";
 import appleCalendarIcon from "../assets/icons/apple-calendar.svg";
+import DistributionIntegrationSlots from "./distribution/DistributionIntegrationSlots";
 
 const API_DOCS_URL = "https://docs.openwhispr.com/api/overview";
 
@@ -463,6 +464,8 @@ export default function IntegrationsView({ isPaid, onUpgrade }: IntegrationsView
           </SettingsPanelRow>
         </SettingsPanel>
       </div>
+
+      <DistributionIntegrationSlots />
 
       <div>
         <SectionLabel>{t("integrations.sections.mcp")}</SectionLabel>

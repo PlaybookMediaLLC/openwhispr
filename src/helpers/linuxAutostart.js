@@ -2,13 +2,16 @@ const fs = require("fs");
 const path = require("path");
 const os = require("os");
 const { HIDDEN_LAUNCH_FLAG } = require("./autoStartPolicy");
+const { resolveReleaseDistribution } = require("./releaseIdentity");
+
+const DISTRIBUTION = resolveReleaseDistribution(require("../../package.json").distribution);
 
 const DESKTOP_ENTRY_GROUP = "[Desktop Entry]";
 
 // electron-builder names the packaged desktop entry and icon after the Linux
 // executable, which main.js also passes to app.setDesktopName(). Reusing it here
 // keeps our entry and the packaged one referring to the same icon.
-const LINUX_APP_NAME = "open-whispr";
+const LINUX_APP_NAME = DISTRIBUTION.linux.appName;
 const WRAPPED_BINARY_SUFFIX = "-app";
 const ICON_THEME_SUBPATH = path.join(
   "icons",
@@ -109,7 +112,7 @@ function buildDesktopFileContents(execPath, iconName) {
   return [
     DESKTOP_ENTRY_GROUP,
     "Type=Application",
-    "Name=OpenWhispr",
+    `Name=${DISTRIBUTION.productName}`,
     "Comment=Voice dictation and AI agent",
     `Exec=${buildExecValue(execPath)}`,
     iconName ? `Icon=${iconName}` : null,

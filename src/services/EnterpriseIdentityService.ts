@@ -1,4 +1,5 @@
 import type { ManagedEnterpriseConfig } from "../types/enterpriseIdentity";
+import { distribution } from "../config/distribution";
 
 export interface ManagedEnterpriseConfigResult {
   success: boolean;
@@ -24,7 +25,7 @@ export async function getManagedEnterpriseConfig(
       success: false,
       status: "error",
       code: "MANAGED_ENTERPRISE_UNSUPPORTED",
-      error: "Managed enterprise AI requires a newer version of OpenWhispr.",
+      error: `Managed enterprise AI requires a newer version of ${distribution.productName}.`,
     };
   }
   return request(accountId, workspaceId, authGeneration, forceRefresh);

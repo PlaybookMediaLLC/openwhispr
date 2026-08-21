@@ -25,10 +25,10 @@ const {
 const path = require("path");
 const http = require("http");
 const tls = require("tls");
-const { resolveReleaseIdentity } = require("./src/helpers/releaseIdentity");
+const { resolveReleaseDistribution } = require("./src/helpers/releaseIdentity");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
 
-const RELEASE_IDENTITY = resolveReleaseIdentity(require("./package.json").releaseIdentity);
+const RELEASE_IDENTITY = resolveReleaseDistribution(require("./package.json").distribution);
 
 // Extend Node's TLS trust with the OS store so ws and https.get see corporate
 // CAs that Chromium already trusts.
@@ -46,9 +46,9 @@ try {
 
 const VALID_CHANNELS = new Set(["development", "staging", "production"]);
 const DEFAULT_OAUTH_PROTOCOL_BY_CHANNEL = {
-  development: "openwhispr-dev",
-  staging: "openwhispr-staging",
-  production: "openwhispr",
+  development: `${RELEASE_IDENTITY.protocolScheme}-dev`,
+  staging: `${RELEASE_IDENTITY.protocolScheme}-staging`,
+  production: RELEASE_IDENTITY.protocolScheme,
 };
 const BASE_WINDOWS_APP_ID = RELEASE_IDENTITY.appId;
 const DEFAULT_AUTH_BRIDGE_PORT = 5199;
@@ -124,7 +124,7 @@ if (process.platform === "linux" && process.env.XDG_SESSION_TYPE === "wayland") 
 // Set desktop filename so Wayland compositors can match windows to the .desktop entry.
 // This allows XDG portals (e.g. PipeWire) to persist permissions across sessions.
 if (process.platform === "linux") {
-  app.setDesktopName("open-whispr.desktop");
+  app.setDesktopName(RELEASE_IDENTITY.linux.desktopName);
 }
 
 // Group all windows under single taskbar entry on Windows
@@ -303,6 +303,7 @@ const { i18nMain, changeLanguage } = require("./src/helpers/i18nMain");
 const { ensureYdotool } = require("./src/helpers/ensureYdotool");
 const sidecarRegistry = require("./src/helpers/sidecarRegistry");
 const { reapStaleSidecars } = require("./src/helpers/sidecarReaper");
+const { DistributionExtensionHost } = require("./src/extensions/DistributionExtensionHost.ts");
 
 // Manager instances - initialized after app.whenReady()
 let debugLogger = null;
@@ -335,6 +336,7 @@ let meetingAecManager = null;
 let qdrantManager = null;
 let ipcHandlers = null;
 let cliBridge = null;
+let distributionExtensionHost = null;
 let globeKeyAlertShown = false;
 let authBridgeServer = null;
 let pendingNoteCloudId = null;
@@ -731,7 +733,7 @@ function resolveAuthUrl() {
     process.env.AUTH_URL ||
     process.env.VITE_AUTH_URL ||
     runtimeEnv.VITE_AUTH_URL ||
-    "https://auth.openwhispr.com"
+    RELEASE_IDENTITY.services.authUrl
   );
 }
 
@@ -949,6 +951,13 @@ async function startApp() {
   // Phase 1: Core managers + IPC handlers before windows
   initializeCoreManagers();
   await environmentManager.init();
+  distributionExtensionHost = new DistributionExtensionHost({
+    app,
+    ipcMain,
+    distribution: RELEASE_IDENTITY,
+    logger: debugLogger,
+  });
+  await distributionExtensionHost.start();
   registerSidecars();
   startAuthBridgeServer();
 
@@ -1862,6 +1871,10 @@ function performSyncTeardown() {
   if (cliBridge) {
     cliBridge.stop().catch(() => {});
     cliBridge = null;
+  }
+  if (distributionExtensionHost) {
+    distributionExtensionHost.stop().catch(() => {});
+    distributionExtensionHost = null;
   }
   if (windowManager && isLiveWindow(windowManager.agentWindow)) {
     windowManager.agentWindow.destroy();

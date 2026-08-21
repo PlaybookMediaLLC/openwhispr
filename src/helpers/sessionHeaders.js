@@ -1,6 +1,11 @@
+const { resolveReleaseDistribution } = require("./releaseIdentity");
+
+const DISTRIBUTION = resolveReleaseDistribution(require("../../package.json").distribution);
+const toPattern = (value) => `${value.replace(/\/$/, "")}/*`;
+
 const OPENWHISPR_HOST_PATTERNS = [
-  "https://auth.openwhispr.com/*",
-  "https://api.openwhispr.com/*",
+  toPattern(DISTRIBUTION.services.authUrl),
+  toPattern(DISTRIBUTION.services.apiUrl),
   "http://localhost:3000/*",
   "http://127.0.0.1:3000/*",
 ];

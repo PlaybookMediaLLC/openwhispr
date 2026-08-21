@@ -3,6 +3,11 @@ const os = require("os");
 const { spawnSync } = require("child_process");
 const { dialog } = require("electron");
 const { getLinuxSessionInfo } = require("./linuxSession");
+const { resolveReleaseDistribution } = require("./releaseIdentity");
+
+const productName = resolveReleaseDistribution(
+  require("../../package.json").distribution
+).productName;
 
 function getLogger() {
   return require("./debugLogger");
@@ -169,7 +174,7 @@ async function ensureYdotool() {
       type: "warning",
       title: "Wayland Paste Setup",
       message: "ydotool is not fully configured. Auto-paste on Wayland may not work.",
-      detail: `The following issues were detected:\n\n${detail}\n\nAfter fixing, restart OpenWhispr.`,
+      detail: `The following issues were detected:\n\n${detail}\n\nAfter fixing, restart ${productName}.`,
     });
   }
 }

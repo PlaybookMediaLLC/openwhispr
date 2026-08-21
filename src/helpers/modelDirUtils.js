@@ -2,6 +2,9 @@ const { app } = require("electron");
 const os = require("os");
 const fs = require("fs");
 const path = require("path");
+const { resolveReleaseDistribution } = require("./releaseIdentity");
+
+const DISTRIBUTION = resolveReleaseDistribution(require("../../package.json").distribution);
 
 // Same rule as safeTempDir: native whisper/parakeet binaries crash on Windows
 // when model paths contain spaces or non-ASCII (CJK / Cyrillic profile dirs).
@@ -17,7 +20,9 @@ function ensureDir(dir) {
 function getAsciiSafeCacheRoot() {
   const envOverride =
     process.env.OPENWHISPR_CACHE_ROOT ||
-    (process.env.XDG_CACHE_HOME ? path.join(process.env.XDG_CACHE_HOME, "openwhispr") : null);
+    (process.env.XDG_CACHE_HOME
+      ? path.join(process.env.XDG_CACHE_HOME, DISTRIBUTION.runtimeNamespace)
+      : null);
   if (envOverride && !pathHasProblematicChars(envOverride)) {
     try {
       return ensureDir(envOverride);
@@ -27,11 +32,15 @@ function getAsciiSafeCacheRoot() {
   }
 
   const fallbackBase = process.env.ProgramData || "C:\\ProgramData";
-  const fallback = path.join(fallbackBase, "OpenWhispr", "cache");
+  const fallback = path.join(fallbackBase, DISTRIBUTION.productName, "cache");
   try {
     return ensureDir(fallback);
   } catch {
-    const rootFallback = path.join(process.env.SystemDrive || "C:", "OpenWhispr", "cache");
+    const rootFallback = path.join(
+      process.env.SystemDrive || "C:",
+      DISTRIBUTION.productName,
+      "cache"
+    );
     try {
       return ensureDir(rootFallback);
     } catch {
@@ -74,7 +83,7 @@ function migrateLegacyModelDirs(legacyRoot, safeRoot) {
 
 function getCacheRoot() {
   const homeDir = app?.getPath?.("home") || os.homedir();
-  const homeCache = path.join(homeDir, ".cache", "openwhispr");
+  const homeCache = path.join(homeDir, ".cache", DISTRIBUTION.runtimeNamespace);
 
   if (process.platform !== "win32" || !pathHasProblematicChars(homeCache)) {
     return homeCache;

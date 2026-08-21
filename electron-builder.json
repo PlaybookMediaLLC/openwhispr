@@ -20,6 +20,7 @@
     "src/helpers/**/*",
     "src/workers/**/*",
     "src/config/**/*",
+    "src/extensions/**/*",
     "src/constants/**/*",
     "src/locales/**/*",
     "src/hooks/**/*",
@@ -32,6 +33,7 @@
     "src/utils/**/*",
     "src/updater.js",
     "src/components.json",
+    "extensions/**/*",
     "!node_modules/.cache/**/*",
     "!src/node_modules/**/*",
 

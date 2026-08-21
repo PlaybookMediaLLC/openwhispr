@@ -2,6 +2,9 @@ const fs = require("fs");
 const path = require("path");
 const { app } = require("electron");
 const debugLogger = require("./debugLogger");
+const { resolveReleaseDistribution } = require("./releaseIdentity");
+
+const distribution = resolveReleaseDistribution(require("../../package.json").distribution);
 
 class AudioStorageManager {
   constructor() {
@@ -28,10 +31,10 @@ class AudioStorageManager {
         const pad = (n) => String(n).padStart(2, "0");
         const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
         const time = `${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
-        return `OpenWhispr-${date}-${time}-${transcriptionId}.webm`;
+        return `${distribution.executableName}-${date}-${time}-${transcriptionId}.webm`;
       }
     }
-    return `OpenWhispr-${transcriptionId}.webm`;
+    return `${distribution.executableName}-${transcriptionId}.webm`;
   }
 
   saveAudio(transcriptionId, audioBuffer, timestamp) {

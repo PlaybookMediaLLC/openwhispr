@@ -839,6 +839,10 @@ export interface ReferralItem {
 declare global {
   interface Window {
     electronAPI: {
+      distributionExtensions?: {
+        invoke: (extensionId: string, method: string, payload?: unknown) => Promise<unknown>;
+        onEvent: (callback: (event: unknown) => void) => () => void;
+      };
       // Basic window operations
       pasteText: (
         text: string,
@@ -962,7 +966,7 @@ declare global {
         limit?: number,
         options?: { includeDiscarded?: boolean }
       ) => Promise<TranscriptionItem[]>;
-      clearTranscriptions: () => Promise<{ cleared: number; success: boolean }>;
+      clearTranscriptions: () => Promise<{ cleared: number; ids?: number[]; success: boolean }>;
       deleteTranscription: (id: number) => Promise<{ success: boolean }>;
       getTranscriptionById: (id: number) => Promise<TranscriptionItem | null>;
 
@@ -1260,7 +1264,9 @@ declare global {
       onTranscriptionAdded?: (callback: (item: TranscriptionItem) => void) => () => void;
       onTranscriptionUpdated?: (callback: (item: TranscriptionItem) => void) => () => void;
       onTranscriptionDeleted?: (callback: (payload: { id: number }) => void) => () => void;
-      onTranscriptionsCleared?: (callback: (payload: { cleared: number }) => void) => () => void;
+      onTranscriptionsCleared?: (
+        callback: (payload: { cleared: number; ids?: number[] }) => void
+      ) => () => void;
 
       // API key management
       getOpenAIKey: () => Promise<string>;

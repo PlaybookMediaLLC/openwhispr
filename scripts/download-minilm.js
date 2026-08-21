@@ -3,11 +3,20 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const { downloadFile, parseArgs } = require("./lib/download-utils");
+const { loadSelectedDistribution } = require("../src/config/distributionSchema.ts");
+
+const DISTRIBUTION = loadSelectedDistribution();
 
 const forBuild = process.argv.includes("--for-build");
 const MODEL_DIR = forBuild
   ? path.join(__dirname, "..", "resources", "bin", "all-MiniLM-L6-v2")
-  : path.join(os.homedir(), ".cache", "openwhispr", "embedding-models", "all-MiniLM-L6-v2");
+  : path.join(
+      os.homedir(),
+      ".cache",
+      DISTRIBUTION.runtimeNamespace,
+      "embedding-models",
+      "all-MiniLM-L6-v2"
+    );
 
 const FILES = [
   {

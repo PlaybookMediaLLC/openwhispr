@@ -1,31 +1,34 @@
 const { execFileSync } = require("child_process");
 const debugLogger = require("./debugLogger");
+const { resolveReleaseDistribution } = require("./releaseIdentity");
 
-const DBUS_SERVICE_NAME = "com.openwhispr.App";
-const DBUS_OBJECT_PATH = "/com/openwhispr/App";
-const DBUS_INTERFACE = "com.openwhispr.App";
+const DISTRIBUTION = resolveReleaseDistribution(require("../../package.json").distribution);
+
+const DBUS_SERVICE_NAME = DISTRIBUTION.linux.dbusServiceName;
+const DBUS_OBJECT_PATH = DISTRIBUTION.linux.dbusObjectPath;
+const DBUS_INTERFACE = DISTRIBUTION.linux.dbusInterface;
 
 // Per-slot gsettings paths and display names
 const SLOT_CONFIG = {
   dictation: {
-    path: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/openwhispr/",
-    name: "OpenWhispr Toggle",
+    path: `/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/${DISTRIBUTION.runtimeNamespace}/`,
+    name: `${DISTRIBUTION.productName} Toggle`,
   },
   agent: {
-    path: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/openwhispr-agent/",
-    name: "OpenWhispr Agent",
+    path: `/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/${DISTRIBUTION.runtimeNamespace}-agent/`,
+    name: `${DISTRIBUTION.productName} Agent`,
   },
   meeting: {
-    path: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/openwhispr-meeting/",
-    name: "OpenWhispr Meeting",
+    path: `/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/${DISTRIBUTION.runtimeNamespace}-meeting/`,
+    name: `${DISTRIBUTION.productName} Meeting`,
   },
   voiceAgent: {
-    path: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/openwhispr-voice-agent/",
-    name: "OpenWhispr Voice Agent",
+    path: `/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/${DISTRIBUTION.runtimeNamespace}-voice-agent/`,
+    name: `${DISTRIBUTION.productName} Voice Agent`,
   },
   translation: {
-    path: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/openwhispr-translation/",
-    name: "OpenWhispr Translation",
+    path: `/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/${DISTRIBUTION.runtimeNamespace}-translation/`,
+    name: `${DISTRIBUTION.productName} Translation`,
   },
 };
 

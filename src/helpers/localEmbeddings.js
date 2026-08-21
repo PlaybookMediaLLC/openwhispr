@@ -3,6 +3,9 @@ const os = require("os");
 const path = require("path");
 const debugLogger = require("./debugLogger");
 const onnxWorkerClient = require("./onnxWorkerClient");
+const { resolveReleaseDistribution } = require("./releaseIdentity");
+
+const DISTRIBUTION = resolveReleaseDistribution(require("../../package.json").distribution);
 
 const MODEL_SUBDIR = "all-MiniLM-L6-v2";
 
@@ -16,7 +19,7 @@ class LocalEmbeddings {
     const cacheDir = path.join(
       os.homedir(),
       ".cache",
-      "openwhispr",
+      DISTRIBUTION.runtimeNamespace,
       "embedding-models",
       MODEL_SUBDIR
     );

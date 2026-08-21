@@ -1096,10 +1096,13 @@ class DatabaseManager {
         "UPDATE transcriptions SET deleted_at = datetime('now'), sync_status = 'pending' WHERE cloud_id IS NOT NULL AND deleted_at IS NULL"
       );
       const hardDelete = this.db.prepare("DELETE FROM transcriptions WHERE cloud_id IS NULL");
-      const clearAll = this.db.transaction(
-        () => tombstone.run().changes + hardDelete.run().changes
-      );
-      return { cleared: clearAll(), success: true };
+      const selectIds = this.db.prepare("SELECT id FROM transcriptions WHERE deleted_at IS NULL");
+      const clearAll = this.db.transaction(() => {
+        const ids = selectIds.all().map((row) => row.id);
+        const cleared = tombstone.run().changes + hardDelete.run().changes;
+        return { ids, cleared };
+      });
+      return { ...clearAll(), success: true };
     } catch (error) {
       debugLogger.error("Error clearing transcriptions", { error: error.message }, "database");
       throw error;

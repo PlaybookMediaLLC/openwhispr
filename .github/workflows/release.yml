@@ -13,17 +13,17 @@ on:
       product_name:
         description: "Displayed application name"
         required: true
-        default: "OpenWhispr"
+        default: "Oppulence Voice"
         type: string
       app_id:
         description: "Unique reverse-DNS application ID; change this when renaming"
         required: true
-        default: "com.gizmolabs.openwhispr"
+        default: "engineering.oppulence.voice"
         type: string
       protocol_scheme:
         description: "Unique lowercase deep-link scheme; change this when renaming"
         required: true
-        default: "openwhispr"
+        default: "oppulence-voice"
         type: string
       publish_release:
         description: "Publish the GitHub release after every platform build succeeds"
@@ -50,12 +50,14 @@ permissions:
   contents: write # Required for creating releases
 
 env:
+  DISTRIBUTION_MANIFEST: distributions/oppulence-voice.json
   RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
-  RELEASE_PRODUCT_NAME: ${{ github.event_name == 'workflow_dispatch' && inputs.product_name || 'OpenWhispr' }}
-  RELEASE_APP_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.app_id || 'com.gizmolabs.openwhispr' }}
-  RELEASE_PROTOCOL_SCHEME: ${{ github.event_name == 'workflow_dispatch' && inputs.protocol_scheme || 'openwhispr' }}
+  RELEASE_PRODUCT_NAME: ${{ github.event_name == 'workflow_dispatch' && inputs.product_name || 'Oppulence Voice' }}
+  RELEASE_APP_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.app_id || 'engineering.oppulence.voice' }}
+  RELEASE_PROTOCOL_SCHEME: ${{ github.event_name == 'workflow_dispatch' && inputs.protocol_scheme || 'oppulence-voice' }}
   RELEASE_CONFIG_PATH: electron-builder.release.generated.json
   RELEASE_REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
+  RELEASE_WINDOWS_SIGNING_JSON: ${{ vars.RELEASE_WINDOWS_SIGNING_JSON }}
   RELEASE_VALIDATE_ONLY: ${{ github.event_name == 'workflow_dispatch' && inputs.validate_only || false }}
   RELEASE_REUSE_SEMANTIC: ${{ github.event_name == 'workflow_dispatch' && inputs.reuse_semantic_release || false }}
 
@@ -71,6 +73,8 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
       - name: Validate release inputs
         env:
           GH_TOKEN: ${{ github.token }}
@@ -78,7 +82,7 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           PUBLISH_RELEASE: ${{ inputs.publish_release }}
           ALLOW_UNSIGNED_RELEASE: ${{ inputs.allow_unsigned_release }}
-          WINDOWS_SIGNING_AVAILABLE: ${{ secrets.AZURE_TENANT_ID != '' && secrets.AZURE_CLIENT_ID != '' && secrets.AZURE_CLIENT_SECRET != '' }}
+          WINDOWS_SIGNING_AVAILABLE: ${{ secrets.AZURE_TENANT_ID != '' && secrets.AZURE_CLIENT_ID != '' && secrets.AZURE_CLIENT_SECRET != '' && vars.RELEASE_WINDOWS_SIGNING_JSON != '' }}
           MACOS_SIGNING_AVAILABLE: ${{ secrets.APPLE_CERTIFICATE_BASE64 != '' && secrets.APPLE_CERTIFICATE_PASSWORD != '' && secrets.APPLE_API_KEY_BASE64 != '' && secrets.APPLE_API_KEY_ID != '' && secrets.APPLE_API_ISSUER != '' && secrets.APPLE_TEAM_ID != '' }}
         run: |
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
@@ -136,8 +140,6 @@ jobs:
             exit 1
           fi
           node scripts/prepare-release-config.js
-      - name: Install dependencies
-        run: npm ci --ignore-scripts
       - name: Run quality checks
         run: npm run quality-check
       - name: Check translations
@@ -196,11 +198,11 @@ jobs:
           node-version: "24"
           cache: "npm"
 
-      - name: Prepare release packaging config
-        run: node scripts/prepare-release-config.js
-
       - name: Install dependencies
         run: npm ci
+
+      - name: Prepare release packaging config
+        run: node scripts/prepare-release-config.js
 
       - name: Install platform-specific native binaries
         run: npm install @rollup/rollup-linux-x64-gnu lightningcss-linux-x64-gnu @tailwindcss/oxide-linux-x64-gnu --no-save
@@ -277,7 +279,7 @@ jobs:
     needs: prepare-release
     runs-on: windows-latest
     env:
-      WINDOWS_SIGNING_AVAILABLE: ${{ secrets.AZURE_TENANT_ID != '' && secrets.AZURE_CLIENT_ID != '' && secrets.AZURE_CLIENT_SECRET != '' }}
+      WINDOWS_SIGNING_AVAILABLE: ${{ secrets.AZURE_TENANT_ID != '' && secrets.AZURE_CLIENT_ID != '' && secrets.AZURE_CLIENT_SECRET != '' && vars.RELEASE_WINDOWS_SIGNING_JSON != '' }}
     steps:
       - uses: actions/checkout@v7
 
@@ -287,13 +289,13 @@ jobs:
           node-version: "24"
           cache: "npm"
 
+      - name: Install dependencies
+        run: npm ci
+
       - name: Prepare release packaging config
         run: node scripts/prepare-release-config.js
         env:
           RELEASE_UNSIGNED_WINDOWS: ${{ env.WINDOWS_SIGNING_AVAILABLE != 'true' }}
-
-      - name: Install dependencies
-        run: npm ci
 
       - name: Install platform-specific native binaries
         run: npm install @rollup/rollup-win32-x64-msvc lightningcss-win32-x64-msvc @tailwindcss/oxide-win32-x64-msvc --no-save
@@ -415,13 +417,13 @@ jobs:
           node-version: "24"
           cache: "npm"
 
+      - name: Install dependencies
+        run: npm ci
+
       - name: Prepare release packaging config
         run: node scripts/prepare-release-config.js
         env:
           RELEASE_UNSIGNED_MACOS: ${{ env.MACOS_SIGNING_AVAILABLE != 'true' }}
-
-      - name: Install dependencies
-        run: npm ci
 
       - name: Install ffmpeg-static for target architecture
         if: matrix.arch == 'x64'

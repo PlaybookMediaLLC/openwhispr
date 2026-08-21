@@ -1,5 +1,9 @@
 const { Menu } = require("electron");
 const { i18nMain } = require("./i18nMain");
+const { resolveReleaseDistribution } = require("./releaseIdentity");
+
+const distribution = resolveReleaseDistribution(require("../../package.json").distribution);
+const sourceUrl = `https://github.com/${distribution.updates.owner}/${distribution.updates.repo}`;
 
 class MenuManager {
   static setupMainMenu(onOpenSettings) {
@@ -106,7 +110,7 @@ class MenuManager {
               label: i18nMain.t("menu.learnMore"),
               click: async () => {
                 const { shell } = require("electron");
-                await shell.openExternal("https://github.com/OpenWhispr/openwhispr");
+                await shell.openExternal(sourceUrl);
               },
             },
           ],

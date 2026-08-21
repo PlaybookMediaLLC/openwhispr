@@ -4,6 +4,11 @@ const os = require("os");
 const path = require("path");
 const debugLogger = require("./debugLogger");
 const { createAbortError } = require("./abortError");
+const { resolveReleaseDistribution } = require("./releaseIdentity");
+
+const productName = resolveReleaseDistribution(
+  require("../../package.json").distribution
+).productName;
 
 let cachedFFmpegPath = null;
 
@@ -118,7 +123,7 @@ function convertToWav(inputPath, outputPath, options = {}) {
     if (!ffmpegPath) {
       reject(
         new Error(
-          "FFmpeg not found - the bundled FFmpeg is missing from this install and no system FFmpeg was found on PATH; reinstalling OpenWhispr should fix this"
+          `FFmpeg not found - the bundled FFmpeg is missing from this install and no system FFmpeg was found on PATH; reinstalling ${productName} should fix this`
         )
       );
       return;

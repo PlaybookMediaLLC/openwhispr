@@ -3,8 +3,9 @@ const fs = require("fs");
 const path = require("path");
 const { app, safeStorage } = require("electron");
 const debugLogger = require("./debugLogger");
+const { resolveReleaseDistribution } = require("./releaseIdentity");
 
-const SERVICE = "OpenWhispr";
+const SERVICE = resolveReleaseDistribution(require("../../package.json").distribution).appId;
 const ACCOUNT = "secrets-master-key";
 const ALGO = "aes-256-gcm";
 const IV_LEN = 12;

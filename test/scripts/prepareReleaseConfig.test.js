@@ -3,8 +3,10 @@ const test = require("node:test");
 
 const {
   createReleaseConfig,
+  resolveReleaseRepository,
   validateReleaseIdentity,
 } = require("../../scripts/prepare-release-config");
+const { loadDistribution } = require("../../src/config/distributionSchema.ts");
 
 const baseConfig = {
   appId: "com.gizmolabs.openwhispr",
@@ -122,5 +124,28 @@ test("requires forks to use an application identity distinct from canonical Open
         repository: "Oppulence-Engineering/openwhispr",
       }),
     /fork release must use a non-OpenWhispr RELEASE_APP_ID/
+  );
+});
+
+test("an Oppulence release never inherits the upstream Windows signing profile", () => {
+  const distribution = loadDistribution("distributions/oppulence-voice.json", process.cwd());
+  const config = createReleaseConfig(baseConfig, {
+    productName: distribution.productName,
+    appId: distribution.appId,
+    protocolScheme: distribution.protocolScheme,
+    repository: `${distribution.updates.owner}/${distribution.updates.repo}`,
+    distribution,
+  });
+
+  assert.equal(config.win.azureSignOptions, null);
+  assert.equal(config.extraMetadata.distribution.id, "oppulence-voice");
+});
+
+test("release CI cannot redirect an Oppulence updater to the checkout repository", () => {
+  const distribution = loadDistribution("distributions/oppulence-voice.json", process.cwd());
+  assert.equal(resolveReleaseRepository(distribution), "Oppulence-Engineering/openwhispr");
+  assert.throws(
+    () => resolveReleaseRepository(distribution, "PlaybookMediaLLC/openwhispr"),
+    /does not match distribution updater repository/
   );
 });

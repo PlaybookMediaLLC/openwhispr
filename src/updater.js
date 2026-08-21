@@ -1,5 +1,8 @@
 const { autoUpdater } = require("electron-updater");
 const { appUpdatesEnabled } = require("./helpers/updateCheckPolicy");
+const { resolveReleaseDistribution } = require("./helpers/releaseIdentity");
+
+const RELEASE_DISTRIBUTION = resolveReleaseDistribution(require("../package.json").distribution);
 
 class UpdateManager {
   constructor() {
@@ -28,10 +31,7 @@ class UpdateManager {
     }
 
     autoUpdater.setFeedURL({
-      provider: "github",
-      owner: "OpenWhispr",
-      repo: "openwhispr",
-      private: false,
+      ...RELEASE_DISTRIBUTION.updates,
     });
 
     // Use arch-specific update channel on macOS to prevent arm64/x64

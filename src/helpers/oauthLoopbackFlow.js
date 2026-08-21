@@ -1,14 +1,17 @@
 const http = require("http");
 const crypto = require("crypto");
 const { shell } = require("electron");
+const { resolveReleaseDistribution } = require("./releaseIdentity");
+
+const DISTRIBUTION = resolveReleaseDistribution(require("../../package.json").distribution);
 
 const OAUTH_TIMEOUT_MS = 120000;
-const DEFAULT_DESKTOP_CALLBACK_URL = "https://openwhispr.com/auth/desktop-callback";
+const DEFAULT_DESKTOP_CALLBACK_URL = DISTRIBUTION.services.oauthCallbackUrl;
 
 const PROTOCOL_BY_CHANNEL = {
-  development: "openwhispr-dev",
-  staging: "openwhispr-staging",
-  production: "openwhispr",
+  development: `${DISTRIBUTION.protocolScheme}-dev`,
+  staging: `${DISTRIBUTION.protocolScheme}-staging`,
+  production: DISTRIBUTION.protocolScheme,
 };
 
 // Thrown by handleCallback to control the error code shown on the hosted
