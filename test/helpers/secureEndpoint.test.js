@@ -6,6 +6,17 @@ const assert = require("node:assert/strict");
 
 const load = () => import("../../src/utils/urlUtils.ts");
 
+test("exact hostname matching rejects URL lookalikes", async () => {
+  const { hasExactHostname } = await load();
+
+  assert.equal(hasExactHostname("https://api.groq.com/openai/v1", "api.groq.com"), true);
+  assert.equal(hasExactHostname("https://API.GROQ.COM/openai/v1", "api.groq.com"), true);
+  assert.equal(hasExactHostname("https://api.groq.com.evil.test/v1", "api.groq.com"), false);
+  assert.equal(hasExactHostname("https://evil-api.groq.com/v1", "api.groq.com"), false);
+  assert.equal(hasExactHostname("https://api.groq.com@evil.test/v1", "api.groq.com"), false);
+  assert.equal(hasExactHostname("not-a-url", "api.groq.com"), false);
+});
+
 test("https endpoints are secure; plain http to a public host is not", async () => {
   const { isSecureHttpEndpoint } = await load();
 

@@ -1,7 +1,7 @@
 import ReasoningService from "../services/ReasoningService";
 import { PROVIDER_REGISTRY } from "../services/ai/inferenceProviders";
 import logger from "../utils/logger";
-import { isAzureOpenAIEndpoint } from "../utils/urlUtils";
+import { hasExactHostname, isAzureOpenAIEndpoint } from "../utils/urlUtils";
 import { withSessionRefresh } from "../lib/auth";
 import { getBaseLanguageCode, getLanguageLabel } from "../utils/languageSupport";
 import {
@@ -3283,7 +3283,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
       // Groq rejects prompts > 896 chars (incl. when reached via "custom" provider).
       // 890 leaves margin for UTF-16 vs codepoint counting drift.
-      const isGroqEndpoint = provider === "groq" || endpoint.includes("api.groq.com");
+      const isGroqEndpoint = provider === "groq" || hasExactHostname(endpoint, "api.groq.com");
       const MAX_PROMPT_CHARS = isGroqEndpoint ? 890 : 900;
       let dictionaryPrompt = this.getWhisperPrompt(apiSettings);
       if (dictionaryPrompt) {

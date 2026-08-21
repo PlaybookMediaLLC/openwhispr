@@ -317,11 +317,7 @@ test("self-hosted mode is never hijacked by a leftover proxied provider", async 
   }
 
   assert.deepEqual(proxyCalls, { mistral: 0, xai: 0, corti: 0 });
-  assert.equal(
-    fetched.every((e) => e.startsWith("https://stt.internal.example.com")),
-    true,
-    `unexpected endpoints: ${fetched.join(", ")}`
-  );
+  assert.deepEqual(fetched, Array(3).fill("https://stt.internal.example.com/audio/transcriptions"));
 });
 
 // A self-hosted URL on an Azure host is a real population: migrateProviderSettings
