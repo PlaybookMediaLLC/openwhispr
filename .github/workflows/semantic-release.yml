@@ -23,10 +23,11 @@ concurrency:
   cancel-in-progress: false
 
 env:
+  DISTRIBUTION_MANIFEST: ${{ vars.RELEASE_DISTRIBUTION_MANIFEST || 'distributions/oppulence-voice.json' }}
   RELEASE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
-  RELEASE_PRODUCT_NAME: ${{ vars.RELEASE_PRODUCT_NAME || 'OpenWhispr' }}
-  RELEASE_APP_ID: ${{ vars.RELEASE_APP_ID || 'com.playbookmedia.openwhispr' }}
-  RELEASE_PROTOCOL_SCHEME: ${{ vars.RELEASE_PROTOCOL_SCHEME || 'playbook-openwhispr' }}
+  RELEASE_PRODUCT_NAME: ${{ vars.RELEASE_PRODUCT_NAME || 'Oppulence Voice' }}
+  RELEASE_APP_ID: ${{ vars.RELEASE_APP_ID || 'engineering.oppulence.voice' }}
+  RELEASE_PROTOCOL_SCHEME: ${{ vars.RELEASE_PROTOCOL_SCHEME || 'oppulence-voice' }}
   RELEASE_ALLOW_UNSIGNED: ${{ vars.RELEASE_ALLOW_UNSIGNED || 'true' }}
 
 jobs:

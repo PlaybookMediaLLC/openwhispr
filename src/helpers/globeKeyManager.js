@@ -3,6 +3,11 @@ const path = require("path");
 const EventEmitter = require("events");
 const fs = require("fs");
 const debugLogger = require("./debugLogger");
+const { resolveReleaseDistribution } = require("./releaseIdentity");
+
+const productName = resolveReleaseDistribution(
+  require("../../package.json").distribution
+).productName;
 
 // Mach-O CPU type constants for architecture verification
 const ARCH_CPU_TYPE = {
@@ -264,7 +269,7 @@ class GlobeKeyManager extends EventEmitter {
         this.reportError(
           new Error(
             `Globe key listener keeps exiting unexpectedly (${MAX_RESTART_ATTEMPTS} restarts failed). ` +
-              "Try restarting OpenWhispr."
+              `Try restarting ${productName}.`
           )
         );
       }

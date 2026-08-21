@@ -1,0 +1,50 @@
+import type { AppDistribution } from "./distributionSchema";
+
+export type { AppDistribution } from "./distributionSchema";
+
+declare const __APP_DISTRIBUTION__: AppDistribution;
+
+const TEST_FALLBACK_DISTRIBUTION = {
+  schemaVersion: 1,
+  id: "openwhispr",
+  productName: "OpenWhispr",
+  companyName: "Gizmo Labs Inc.",
+  appId: "com.gizmolabs.openwhispr",
+  protocolScheme: "openwhispr",
+  executableName: "open-whispr",
+  runtimeNamespace: "openwhispr",
+  supportEmail: "support@openwhispr.com",
+  cloudDisplayName: "OpenWhispr Cloud",
+  services: {
+    apiUrl: "https://api.openwhispr.com",
+    authUrl: "https://auth.openwhispr.com",
+    oauthCallbackUrl: "https://openwhispr.com/auth/desktop-callback",
+  },
+  updates: { provider: "github", owner: "OpenWhispr", repo: "openwhispr", private: false },
+  linux: {
+    desktopName: "open-whispr.desktop",
+    appName: "open-whispr",
+    dbusServiceName: "com.openwhispr.App",
+    dbusObjectPath: "/com/openwhispr/App",
+    dbusInterface: "com.openwhispr.App",
+  },
+  assets: {
+    macIcon: "src/assets/icon.icns",
+    windowsIcon: "src/assets/icon.ico",
+    linuxIcon: "src/assets/icon.png",
+  },
+  signing: {
+    windowsAzure: {
+      endpoint: "https://eus.codesigning.azure.net/",
+      certificateProfileName: "openwhispr-release",
+      codeSigningAccountName: "OpenWhispr",
+      publisherName: "CN=Gizmo Labs Inc., O=Gizmo Labs Inc., L=Wilmington, S=Delaware, C=US",
+    },
+  },
+  capabilities: { managedCloud: true, rowboatExport: false },
+  extensions: [],
+} satisfies AppDistribution;
+
+export const distribution: Readonly<AppDistribution> = Object.freeze(
+  typeof __APP_DISTRIBUTION__ === "undefined" ? TEST_FALLBACK_DISTRIBUTION : __APP_DISTRIBUTION__
+);

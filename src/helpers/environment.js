@@ -232,7 +232,10 @@ class EnvironmentManager {
     // otherwise a partial-migration recovery can lose unencrypted secrets.
     const stripSecrets =
       this._encryptionAvailable() && fs.existsSync(this._getMigrationSentinelPath());
-    let envContent = "# OpenWhispr Environment Variables\n";
+    const { productName } = require("./releaseIdentity").resolveReleaseDistribution(
+      require("../../package.json").distribution
+    );
+    let envContent = `# ${productName} Environment Variables\n`;
     for (const key of PERSISTED_KEYS) {
       if (stripSecrets && SECRET_KEY_SET.has(key)) continue;
       if (process.env[key]) {

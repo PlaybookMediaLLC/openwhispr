@@ -1,4 +1,8 @@
 const i18next = require("i18next");
+const { brandResources } = require("../config/branding.ts");
+const { resolveReleaseDistribution } = require("./releaseIdentity");
+
+const DISTRIBUTION = resolveReleaseDistribution(require("../../package.json").distribution);
 
 const enTranslation = require("../locales/en/translation.json");
 const esTranslation = require("../locales/es/translation.json");
@@ -55,48 +59,51 @@ const i18nMain = i18next.createInstance();
 
 void i18nMain.init({
   initAsync: false,
-  resources: {
-    en: {
-      translation: enTranslation,
-      prompts: enPrompts,
+  resources: brandResources(
+    {
+      en: {
+        translation: enTranslation,
+        prompts: enPrompts,
+      },
+      es: {
+        translation: esTranslation,
+        prompts: esPrompts,
+      },
+      fr: {
+        translation: frTranslation,
+        prompts: frPrompts,
+      },
+      de: {
+        translation: deTranslation,
+        prompts: dePrompts,
+      },
+      pt: {
+        translation: ptTranslation,
+        prompts: ptPrompts,
+      },
+      it: {
+        translation: itTranslation,
+        prompts: itPrompts,
+      },
+      ru: {
+        translation: ruTranslation,
+        prompts: ruPrompts,
+      },
+      ja: {
+        translation: jaTranslation,
+        prompts: jaPrompts,
+      },
+      "zh-CN": {
+        translation: zhCNTranslation,
+        prompts: zhCNPrompts,
+      },
+      "zh-TW": {
+        translation: zhTWTranslation,
+        prompts: zhTWPrompts,
+      },
     },
-    es: {
-      translation: esTranslation,
-      prompts: esPrompts,
-    },
-    fr: {
-      translation: frTranslation,
-      prompts: frPrompts,
-    },
-    de: {
-      translation: deTranslation,
-      prompts: dePrompts,
-    },
-    pt: {
-      translation: ptTranslation,
-      prompts: ptPrompts,
-    },
-    it: {
-      translation: itTranslation,
-      prompts: itPrompts,
-    },
-    ru: {
-      translation: ruTranslation,
-      prompts: ruPrompts,
-    },
-    ja: {
-      translation: jaTranslation,
-      prompts: jaPrompts,
-    },
-    "zh-CN": {
-      translation: zhCNTranslation,
-      prompts: zhCNPrompts,
-    },
-    "zh-TW": {
-      translation: zhTWTranslation,
-      prompts: zhTWPrompts,
-    },
-  },
+    DISTRIBUTION
+  ),
   lng: normalizeUiLanguage(process.env.UI_LANGUAGE),
   fallbackLng: "en",
   ns: ["translation", "prompts"],

@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { distribution } from "../config/distribution";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
@@ -929,8 +930,8 @@ export default function SettingsPage({
   const [isRemovingModels, setIsRemovingModels] = useState(false);
   const [cachePathHint, setCachePathHint] = useState(
     typeof navigator !== "undefined" && /Windows/i.test(navigator.userAgent)
-      ? "%USERPROFILE%\\.cache\\openwhispr"
-      : "~/.cache/openwhispr"
+      ? `%USERPROFILE%\\.cache\\${distribution.runtimeNamespace}`
+      : `~/.cache/${distribution.runtimeNamespace}`
   );
   useEffect(() => {
     window.electronAPI
@@ -3159,8 +3160,7 @@ export default function SettingsPage({
                             defaultValue: "Log out and back in",
                           }),
                           desc: t("settingsPage.general.waylandPaste.guide.group.step2Desc", {
-                            defaultValue:
-                              "Group changes only take effect after a new login session. Log out of your desktop and log back in, then reopen OpenWhispr.",
+                            defaultValue: `Group changes only take effect after a new login session. Log out of your desktop and log back in, then reopen ${distribution.productName}.`,
                           }),
                         },
                       ],

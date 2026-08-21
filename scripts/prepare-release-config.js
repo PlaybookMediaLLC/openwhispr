@@ -2,24 +2,32 @@
 
 const fs = require("fs");
 const path = require("path");
+const {
+  loadSelectedDistribution,
+  validateDistribution,
+} = require("../src/config/distributionSchema.ts");
 
 const DEFAULT_PRODUCT_NAME = "OpenWhispr";
 const DEFAULT_APP_ID = "com.gizmolabs.openwhispr";
 const DEFAULT_PROTOCOL_SCHEME = "openwhispr";
 const CANONICAL_REPOSITORY = "openwhispr/openwhispr";
 
-function requireValue(name, value) {
-  if (!value || !value.trim()) {
-    throw new Error(`${name} is required`);
-  }
-  return value.trim();
-}
-
 function parseBoolean(name, value) {
   if (value === undefined || value === "") return false;
   if (value === true || value === "true") return true;
   if (value === false || value === "false") return false;
   throw new Error(`${name} must be true or false`);
+}
+
+function resolveReleaseRepository(distribution, githubRepository) {
+  const expected = `${distribution.updates.owner}/${distribution.updates.repo}`;
+  const actual = (githubRepository || expected).trim();
+  if (actual.toLowerCase() !== expected.toLowerCase()) {
+    throw new Error(
+      `Release repository ${actual} does not match distribution updater repository ${expected}`
+    );
+  }
+  return expected;
 }
 
 function validateReleaseIdentity({ productName, appId, protocolScheme, repository }) {
@@ -89,7 +97,24 @@ function createReleaseConfig(baseConfig, options) {
     repositoryPrivate = false,
     unsignedWindows = false,
     unsignedMacos = false,
+    distribution: distributionValue,
   } = options;
+
+  const baseDistribution = distributionValue
+    ? validateDistribution(distributionValue)
+    : loadSelectedDistribution({});
+  const distribution = validateDistribution({
+    ...baseDistribution,
+    productName,
+    appId,
+    protocolScheme,
+    updates: {
+      ...baseDistribution.updates,
+      owner: repository.split("/")[0],
+      repo: repository.split("/")[1],
+      private: repositoryPrivate,
+    },
+  });
 
   validateReleaseIdentity({ productName, appId, protocolScheme, repository });
 
@@ -106,7 +131,9 @@ function createReleaseConfig(baseConfig, options) {
   config.extraMetadata = {
     ...(config.extraMetadata || {}),
     releaseIdentity: { productName, appId, protocolScheme },
+    distribution,
   };
+  config.executableName = distribution.executableName;
   config.protocols = {
     ...(config.protocols || {}),
     name: `${productName} Protocol`,
@@ -120,6 +147,14 @@ function createReleaseConfig(baseConfig, options) {
     private: repositoryPrivate,
     releaseType: "draft",
   };
+
+  config.files = Array.from(
+    new Set([...(config.files || []), "distributions/**/*", "extensions/**/*"])
+  );
+  config.mac = { ...(config.mac || {}), icon: distribution.assets.macIcon };
+  config.win = { ...(config.win || {}), icon: distribution.assets.windowsIcon };
+  config.win.azureSignOptions = distribution.signing.windowsAzure;
+  config.linux = { ...(config.linux || {}), icon: distribution.assets.linuxIcon };
 
   if (unsignedWindows) {
     config.win = { ...(config.win || {}), azureSignOptions: null };
@@ -137,10 +172,17 @@ function main(env = process.env) {
   const outputPath = path.resolve(
     env.RELEASE_CONFIG_PATH || "electron-builder.release.generated.json"
   );
-  const productName = requireValue("RELEASE_PRODUCT_NAME", env.RELEASE_PRODUCT_NAME);
-  const appId = requireValue("RELEASE_APP_ID", env.RELEASE_APP_ID);
-  const protocolScheme = requireValue("RELEASE_PROTOCOL_SCHEME", env.RELEASE_PROTOCOL_SCHEME);
-  const repository = requireValue("GITHUB_REPOSITORY", env.GITHUB_REPOSITORY);
+  let distribution = loadSelectedDistribution(env, process.cwd());
+  if (env.RELEASE_WINDOWS_SIGNING_JSON) {
+    distribution = validateDistribution({
+      ...distribution,
+      signing: { windowsAzure: JSON.parse(env.RELEASE_WINDOWS_SIGNING_JSON) },
+    });
+  }
+  const productName = (env.RELEASE_PRODUCT_NAME || distribution.productName).trim();
+  const appId = (env.RELEASE_APP_ID || distribution.appId).trim();
+  const protocolScheme = (env.RELEASE_PROTOCOL_SCHEME || distribution.protocolScheme).trim();
+  const repository = resolveReleaseRepository(distribution, env.GITHUB_REPOSITORY);
 
   const baseConfig = JSON.parse(fs.readFileSync(basePath, "utf8"));
   const config = createReleaseConfig(baseConfig, {
@@ -151,6 +193,7 @@ function main(env = process.env) {
     repositoryPrivate: parseBoolean("RELEASE_REPOSITORY_PRIVATE", env.RELEASE_REPOSITORY_PRIVATE),
     unsignedWindows: parseBoolean("RELEASE_UNSIGNED_WINDOWS", env.RELEASE_UNSIGNED_WINDOWS),
     unsignedMacos: parseBoolean("RELEASE_UNSIGNED_MACOS", env.RELEASE_UNSIGNED_MACOS),
+    distribution,
   });
 
   fs.writeFileSync(outputPath, `${JSON.stringify(config, null, 2)}\n`);
@@ -169,5 +212,6 @@ if (require.main === module) {
 module.exports = {
   createReleaseConfig,
   parseBoolean,
+  resolveReleaseRepository,
   validateReleaseIdentity,
 };

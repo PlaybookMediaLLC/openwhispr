@@ -17,6 +17,7 @@ import logoIcon from "../assets/icon.png";
 import logger from "../utils/logger";
 import { getCachedPlatform } from "../utils/platform";
 import ForgotPasswordView from "./ForgotPasswordView";
+import { distribution } from "../config/distribution";
 
 interface AuthenticationStepProps {
   onContinueWithoutAccount?: () => void;
@@ -324,7 +325,7 @@ export default function AuthenticationStep({
         <div className="text-center mb-4">
           <img
             src={logoIcon}
-            alt="OpenWhispr"
+            alt={distribution.productName}
             className="w-12 h-12 mx-auto mb-2.5 rounded-lg shadow-sm"
           />
           <p className="text-lg font-semibold text-foreground tracking-tight leading-tight">
@@ -358,7 +359,7 @@ export default function AuthenticationStep({
         <div className="text-center mb-4">
           <img
             src={logoIcon}
-            alt="OpenWhispr"
+            alt={distribution.productName}
             className="w-12 h-12 mx-auto mb-2.5 rounded-lg shadow-sm"
           />
           <div className="w-5 h-5 mx-auto bg-success/10 rounded-full flex items-center justify-center mb-2">
@@ -579,7 +580,7 @@ export default function AuthenticationStep({
       <div className="text-center mb-4">
         <img
           src={logoIcon}
-          alt="OpenWhispr"
+          alt={distribution.productName}
           className="w-12 h-12 mx-auto mb-2.5 rounded-lg shadow-sm"
         />
         <p className="text-lg font-semibold text-foreground tracking-tight leading-tight">

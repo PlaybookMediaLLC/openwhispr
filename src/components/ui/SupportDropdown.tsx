@@ -10,6 +10,11 @@ import {
 } from "./dropdown-menu";
 import { cn } from "../lib/utils";
 import logger from "../../utils/logger";
+import { distribution } from "../../config/distribution";
+
+const sourceUrl = `https://github.com/${distribution.updates.owner}/${distribution.updates.repo}`;
+const supportMailto = `mailto:${distribution.supportEmail}`;
+const supportWebmail = `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(distribution.supportEmail)}`;
 
 function DiscordIcon({ className }: { className?: string }) {
   return (
@@ -64,18 +69,16 @@ export default function SupportDropdown({ className, trigger }: SupportDropdownP
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={async () => {
-            const result = await window.electronAPI?.openExternal("mailto:support@openwhispr.com");
+            const result = await window.electronAPI?.openExternal(supportMailto);
             if (!result?.success) {
-              openExternal("https://mail.google.com/mail/?view=cm&to=support@openwhispr.com");
+              openExternal(supportWebmail);
             }
           }}
         >
           <Mail className="mr-2 h-4 w-4" />
           {t("support.contactSupport")}
         </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => openExternal("https://github.com/OpenWhispr/openwhispr/issues")}
-        >
+        <DropdownMenuItem onClick={() => openExternal(`${sourceUrl}/issues`)}>
           <Bug className="mr-2 h-4 w-4" />
           {t("support.submitBug")}
         </DropdownMenuItem>

@@ -1,6 +1,9 @@
 const os = require("os");
 const fs = require("fs");
 const path = require("path");
+const { resolveReleaseDistribution } = require("./releaseIdentity");
+
+const distribution = resolveReleaseDistribution(require("../../package.json").distribution);
 
 let cachedSafeTempDir = null;
 
@@ -21,14 +24,18 @@ function getSafeTempDir() {
   }
 
   const fallbackBase = process.env.ProgramData || "C:\\ProgramData";
-  const fallback = path.join(fallbackBase, "OpenWhispr", "temp");
+  const fallback = path.join(fallbackBase, distribution.runtimeNamespace, "temp");
 
   try {
     fs.mkdirSync(fallback, { recursive: true });
     cachedSafeTempDir = fallback;
     return fallback;
   } catch {
-    const rootFallback = path.join(process.env.SystemDrive || "C:", "OpenWhispr", "temp");
+    const rootFallback = path.join(
+      process.env.SystemDrive || "C:",
+      distribution.runtimeNamespace,
+      "temp"
+    );
     try {
       fs.mkdirSync(rootFallback, { recursive: true });
       cachedSafeTempDir = rootFallback;

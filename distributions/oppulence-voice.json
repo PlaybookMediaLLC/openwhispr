@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "id": "oppulence-voice",
+  "productName": "Oppulence Voice",
+  "companyName": "Oppulence Engineering",
+  "appId": "engineering.oppulence.voice",
+  "protocolScheme": "oppulence-voice",
+  "executableName": "oppulence-voice",
+  "runtimeNamespace": "oppulence-voice",
+  "supportEmail": "support@oppulence.com",
+  "cloudDisplayName": "OpenWhispr Cloud",
+  "services": {
+    "apiUrl": "https://api.openwhispr.com",
+    "authUrl": "https://auth.openwhispr.com",
+    "oauthCallbackUrl": "https://openwhispr.com/auth/desktop-callback"
+  },
+  "updates": {
+    "provider": "github",
+    "owner": "Oppulence-Engineering",
+    "repo": "openwhispr",
+    "private": false
+  },
+  "linux": {
+    "desktopName": "oppulence-voice.desktop",
+    "appName": "oppulence-voice",
+    "dbusServiceName": "engineering.oppulence.Voice.Shortcuts",
+    "dbusObjectPath": "/engineering/oppulence/Voice/Shortcuts",
+    "dbusInterface": "engineering.oppulence.Voice.Shortcuts"
+  },
+  "assets": {
+    "macIcon": "src/assets/icon.icns",
+    "windowsIcon": "src/assets/icon.ico",
+    "linuxIcon": "src/assets/icon.png"
+  },
+  "signing": {
+    "windowsAzure": null
+  },
+  "capabilities": {
+    "managedCloud": true,
+    "rowboatExport": true
+  },
+  "extensions": ["rowboat-export"]
+}

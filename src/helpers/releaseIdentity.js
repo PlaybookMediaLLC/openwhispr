@@ -4,6 +4,11 @@ const DEFAULT_RELEASE_IDENTITY = Object.freeze({
   protocolScheme: "openwhispr",
 });
 
+const {
+  loadSelectedDistribution,
+  validateDistribution,
+} = require("../config/distributionSchema.ts");
+
 function resolveReleaseIdentity(value) {
   if (!value || typeof value !== "object") {
     return DEFAULT_RELEASE_IDENTITY;
@@ -31,7 +36,19 @@ function resolveReleaseIdentity(value) {
   return Object.freeze({ productName, appId, protocolScheme });
 }
 
+function resolveReleaseDistribution(value, env = process.env) {
+  try {
+    if (env.DISTRIBUTION_MANIFEST || env.RELEASE_DISTRIBUTION_MANIFEST) {
+      return loadSelectedDistribution(env);
+    }
+    return validateDistribution(value);
+  } catch {
+    return loadSelectedDistribution({});
+  }
+}
+
 module.exports = {
   DEFAULT_RELEASE_IDENTITY,
   resolveReleaseIdentity,
+  resolveReleaseDistribution,
 };

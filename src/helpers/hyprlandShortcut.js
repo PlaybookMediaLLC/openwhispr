@@ -3,10 +3,13 @@ const fs = require("fs");
 const path = require("path");
 const os = require("os");
 const debugLogger = require("./debugLogger");
+const { resolveReleaseDistribution } = require("./releaseIdentity");
 
-const DBUS_SERVICE_NAME = "com.openwhispr.App";
-const DBUS_OBJECT_PATH = "/com/openwhispr/App";
-const DBUS_INTERFACE = "com.openwhispr.App";
+const DISTRIBUTION = resolveReleaseDistribution(require("../../package.json").distribution);
+
+const DBUS_SERVICE_NAME = DISTRIBUTION.linux.dbusServiceName;
+const DBUS_OBJECT_PATH = DISTRIBUTION.linux.dbusObjectPath;
+const DBUS_INTERFACE = DISTRIBUTION.linux.dbusInterface;
 
 // Map Electron modifier names to Hyprland modifier names
 const ELECTRON_TO_HYPRLAND_MOD = {
@@ -45,9 +48,9 @@ const ELECTRON_TO_HYPRLAND_KEY = {
 const VALID_HOTKEY_PATTERN =
   /^((CommandOrControl|CmdOrCtrl|Control|Ctrl|Alt|Option|Shift|Super|Meta|Win|Command|Cmd)(\+(CommandOrControl|CmdOrCtrl|Control|Ctrl|Alt|Option|Shift|Super|Meta|Win|Command|Cmd))*(\+)?)?(F([1-9]|1[0-9]|2[0-4])|[A-Za-z0-9]|Space|Escape|Tab|Backspace|Delete|Insert|Home|End|PageUp|PageDown|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Enter|PrintScreen|ScrollLock|Pause|Backquote|`)?$/i;
 
-const BINDS_FILENAME = "openwhispr-binds.conf";
+const BINDS_FILENAME = `${DISTRIBUTION.runtimeNamespace}-binds.conf`;
 const MANAGED_HEADER_LINES = [
-  "# OpenWhispr keybinds (managed automatically)",
+  `# ${DISTRIBUTION.productName} keybinds (managed automatically)`,
   "# If you delete this file, also remove the matching source line from your Hyprland config.",
 ];
 

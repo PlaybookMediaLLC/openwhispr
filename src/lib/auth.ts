@@ -10,8 +10,9 @@ import {
   observeAuthTokenStateEvent,
   prepareAuthRequest,
 } from "./authRequestContext";
+import { distribution } from "../config/distribution";
 
-export const AUTH_URL = import.meta.env.VITE_AUTH_URL || "https://auth.openwhispr.com";
+export const AUTH_URL = import.meta.env.VITE_AUTH_URL || distribution.services.authUrl;
 export const authClient = createAuthClient({
   baseURL: AUTH_URL,
   plugins: [ssoClient()],

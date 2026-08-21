@@ -4,9 +4,12 @@ import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
+import { createRequire } from "module";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const require = createRequire(import.meta.url);
+const { loadSelectedDistribution } = require("./config/distributionSchema.ts");
 const DEFAULT_DEV_SERVER_PORT = 5183;
 
 const parseDevServerPort = (rawPort) => {
@@ -24,6 +27,7 @@ const parseDevServerPort = (rawPort) => {
 export default defineConfig(({ mode }) => {
   const envDir = path.resolve(__dirname, "..");
   const env = loadEnv(mode, envDir, "");
+  const distribution = loadSelectedDistribution({ ...process.env, ...env }, envDir);
   const rawPort = env.VITE_DEV_SERVER_PORT || env.OPENWHISPR_DEV_SERVER_PORT;
   const devServerPort = parseDevServerPort(rawPort);
 
@@ -32,11 +36,17 @@ export default defineConfig(({ mode }) => {
       react(),
       tailwindcss(),
       {
+        name: "distribution-branding",
+        transformIndexHtml(html) {
+          return html.replace(/<title>.*?<\/title>/, `<title>${distribution.productName}</title>`);
+        },
+      },
+      {
         name: "write-runtime-env",
         writeBundle() {
           const runtimeEnv = {
-            VITE_OPENWHISPR_API_URL: env.VITE_OPENWHISPR_API_URL || "",
-            VITE_AUTH_URL: env.VITE_AUTH_URL || "",
+            VITE_OPENWHISPR_API_URL: env.VITE_OPENWHISPR_API_URL || distribution.services.apiUrl,
+            VITE_AUTH_URL: env.VITE_AUTH_URL || distribution.services.authUrl,
           };
           fs.writeFileSync(
             path.resolve(__dirname, "dist", "runtime-env.json"),
@@ -46,6 +56,9 @@ export default defineConfig(({ mode }) => {
       },
     ],
     base: "./", // Use relative paths for file:// protocol in Electron
+    define: {
+      __APP_DISTRIBUTION__: JSON.stringify(distribution),
+    },
     envDir, // Load .env from project root
     resolve: {
       alias: {
