@@ -1,0 +1,16 @@
+---
+title: Privacy and encryption
+description: The local-first data boundary used by Oppulence Voice.
+---
+
+Local capture is not the same operation as sharing with Rowboat. The product
+keeps these boundaries explicit:
+
+1. Audio and transcription are processed locally by default.
+2. Cloud sync uploads encrypted records and the metadata required for ordering.
+3. A Rowboat capture artifact requires explicit `user_opt_in` consent.
+4. Every handoff records source product, local identity, event type, timestamp,
+   content hash, and an idempotency identifier.
+
+API keys are shown once. The service persists only their SHA-256 digests and
+returns short-lived verifier snapshots to the desktop loopback API.

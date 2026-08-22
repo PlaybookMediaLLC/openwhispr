@@ -5,7 +5,7 @@ import { z } from "zod";
 
 const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 export const DEFAULT_MANIFEST_PATH = path.join(PROJECT_ROOT, "distributions", "openwhispr.json");
-export const ALLOWED_EXTENSIONS = ["rowboat-export"] as const;
+export const ALLOWED_EXTENSIONS = ["rowboat-export", "oppulence-cloud"] as const;
 
 export const Identifier = z
   .string()
@@ -32,12 +32,28 @@ const WindowsSafeDirectory = z
   .string()
   .trim()
   .regex(/^[A-Za-z0-9][A-Za-z0-9_-]{1,63}$/);
+const AssetPath = z
+  .string()
+  .trim()
+  .min(1)
+  .refine((value) => !path.isAbsolute(value), "Expected a project-relative asset path")
+  .refine(
+    (value) => !value.split(/[\\/]/).includes(".."),
+    "Asset paths must not traverse outside the project"
+  );
 const HttpUrl = z
   .string()
   .trim()
   .url()
   .refine((value) => ["http:", "https:"].includes(new URL(value).protocol), "Expected HTTP URL")
   .transform((value) => value.replace(/\/$/, ""));
+const DevelopmentAPIURL = HttpUrl.refine((value) => {
+  const url = new URL(value);
+  return (
+    url.protocol === "https:" ||
+    (url.protocol === "http:" && ["127.0.0.1", "localhost", "::1"].includes(url.hostname))
+  );
+}, "Expected HTTPS or a loopback HTTP URL");
 const DbusObjectPath = z
   .string()
   .trim()
@@ -99,9 +115,18 @@ export const DistributionSchema = z
         .regex(/^[A-Za-z_][A-Za-z0-9_.-]+$/),
     }),
     assets: z.object({
-      macIcon: z.string().trim().min(1),
-      windowsIcon: z.string().trim().min(1),
-      linuxIcon: z.string().trim().min(1),
+      rendererLogo: AssetPath,
+      rendererIcon: AssetPath,
+      trayIcon: AssetPath,
+      macIcon: AssetPath,
+      windowsIcon: AssetPath,
+      linuxIcon: AssetPath,
+      macAssetCatalog: z
+        .object({
+          file: AssetPath,
+          iconName: z.string().trim().min(1),
+        })
+        .nullable(),
     }),
     signing: z.object({
       windowsAzure: z
@@ -156,5 +181,19 @@ export function loadSelectedDistribution(
   env: Record<string, string | undefined> = process.env,
   cwd = PROJECT_ROOT
 ): Readonly<AppDistribution> {
-  return loadDistribution(env.DISTRIBUTION_MANIFEST || env.RELEASE_DISTRIBUTION_MANIFEST, cwd);
+  const distribution = loadDistribution(
+    env.DISTRIBUTION_MANIFEST || env.RELEASE_DISTRIBUTION_MANIFEST,
+    cwd
+  );
+  if (!env.OPPULENCE_VOICE_API_URL) return distribution;
+  if (distribution.id !== "oppulence-voice") {
+    throw new Error("OPPULENCE_VOICE_API_URL may only override the Oppulence Voice distribution");
+  }
+  return Object.freeze({
+    ...distribution,
+    services: Object.freeze({
+      ...distribution.services,
+      apiUrl: DevelopmentAPIURL.parse(env.OPPULENCE_VOICE_API_URL),
+    }),
+  });
 }

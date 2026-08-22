@@ -158,7 +158,11 @@ export async function deleteAccount(): Promise<{ error?: Error }> {
 export async function signOut(): Promise<void> {
   credentialAccountCache = null;
   try {
-    await authClient.signOut();
+    if (distribution.extensions.includes("oppulence-cloud")) {
+      await window.electronAPI?.distributionExtensions?.invoke("oppulence-cloud", "clearSession");
+    } else {
+      await authClient.signOut();
+    }
   } catch {
     // Local sign-out must still cross a credential generation boundary when
     // the server is offline; the remote session can expire independently.
@@ -206,6 +210,17 @@ export async function signInWithSocial(provider: SocialProvider): Promise<{ erro
     const isElectron = Boolean((window as any).electronAPI);
 
     if (isElectron) {
+      if (distribution.extensions.includes("oppulence-cloud")) {
+        const workOSProvider = {
+          google: "GoogleOAuth",
+          microsoft: "MicrosoftOAuth",
+          apple: "AppleOAuth",
+        }[provider];
+        await window.electronAPI?.distributionExtensions?.invoke("oppulence-cloud", "startLogin", {
+          provider: workOSProvider,
+        });
+        return {};
+      }
       // OAuth must be initiated from the user's browser, not the renderer:
       // the state cookie Better Auth sets has to land in the same cookie jar
       // that handles the /api/auth/callback/* round-trip. The shim endpoint
@@ -230,6 +245,13 @@ export async function signInWithSSO(email: string): Promise<{ error?: Error }> {
     const isElectron = Boolean((window as any).electronAPI);
 
     if (isElectron) {
+      if (distribution.extensions.includes("oppulence-cloud")) {
+        await window.electronAPI?.distributionExtensions?.invoke("oppulence-cloud", "startLogin", {
+          provider: "authkit",
+          email,
+        });
+        return {};
+      }
       // Same browser-handoff rationale as signInWithSocial: the SSO state cookie
       // must land in the browser's cookie jar. The /sso shim routes by work-email
       // domain and 302s to the workspace's IdP with the cookies attached.

@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { createRequire } from "node:module";
 import electron, { type App } from "electron";
 import type { AppDistribution } from "../../src/config/distributionSchema";
 import {
@@ -14,6 +15,7 @@ import { subscribeToBroadcast } from "../../src/helpers/windowBroadcast.js";
 import { CaptureOutbox, toCaptureArtifact } from "./outbox.ts";
 
 const { safeStorage } = electron;
+const require = createRequire(import.meta.url);
 
 export const CAPTURE_CHANNELS = new Set([
   "note-added",
@@ -26,7 +28,14 @@ export const CAPTURE_CHANNELS = new Set([
   "speaker-mapping-updated",
   "speaker-mapping-removed",
 ]);
-type RowboatConfig = { enabled: false } | ({ enabled: true } & RowboatConnection);
+type RowboatConfig =
+  | { enabled: false }
+  | ({ enabled: true; authMode: "stored-token" } & RowboatConnection)
+  | { enabled: true; authMode: "oppulence-account"; endpoint: string };
+
+interface TokenStore {
+  get(): string | null;
+}
 
 interface ExtensionLogger {
   error?(message: string, details?: Record<string, unknown>): void;
@@ -49,6 +58,7 @@ export class RowboatExportExtension {
   private readonly logger: ExtensionLogger;
   private readonly configPath: string;
   private readonly outbox: CaptureOutbox;
+  private readonly tokenStore: TokenStore;
   private readonly unsubscribe: () => void;
   private readonly timer: NodeJS.Timeout;
   private config: RowboatConfig;
@@ -59,6 +69,7 @@ export class RowboatExportExtension {
     this.logger = logger;
     this.configPath = path.join(app.getPath("userData"), "rowboat-export.json");
     this.outbox = new CaptureOutbox(app.getPath("userData"));
+    this.tokenStore = require("../../src/helpers/tokenStore.js") as TokenStore;
     this.config = this.readConfig();
     this.unsubscribe = subscribeToBroadcast(
       ({ channel, data }: { channel: string; data: Record<string, unknown> }) =>
@@ -74,9 +85,16 @@ export class RowboatExportExtension {
       const stored = StoredRowboatConfigSchema.parse(
         JSON.parse(fs.readFileSync(this.configPath, "utf8"))
       );
-      if (!stored.enabled || !safeStorage.isEncryptionAvailable()) return { enabled: false };
+      if (!stored.enabled) return { enabled: false };
+      if ("authMode" in stored && stored.authMode === "oppulence-account") {
+        return { enabled: true, endpoint: stored.endpoint, authMode: "oppulence-account" };
+      }
+      if (!("encryptedToken" in stored) || !safeStorage.isEncryptionAvailable()) {
+        return { enabled: false };
+      }
       return {
         enabled: true,
+        authMode: "stored-token",
         ...RowboatConnectionSchema.parse({
           endpoint: stored.endpoint,
           token: safeStorage.decryptString(Buffer.from(stored.encryptedToken, "base64")),
@@ -88,13 +106,19 @@ export class RowboatExportExtension {
   }
 
   private saveConfig(): void {
-    const stored = this.config.enabled
-      ? {
-          enabled: true as const,
-          endpoint: this.config.endpoint,
-          encryptedToken: safeStorage.encryptString(this.config.token).toString("base64"),
-        }
-      : { enabled: false as const };
+    const stored = !this.config.enabled
+      ? { enabled: false as const }
+      : this.config.authMode === "oppulence-account"
+        ? {
+            enabled: true as const,
+            endpoint: this.config.endpoint,
+            authMode: "oppulence-account" as const,
+          }
+        : {
+            enabled: true as const,
+            endpoint: this.config.endpoint,
+            encryptedToken: safeStorage.encryptString(this.config.token).toString("base64"),
+          };
     fs.writeFileSync(this.configPath, `${JSON.stringify(stored, null, 2)}\n`, { mode: 0o600 });
   }
 
@@ -117,10 +141,15 @@ export class RowboatExportExtension {
     try {
       for (const row of this.outbox.due()) {
         try {
+          const token =
+            this.config.authMode === "oppulence-account"
+              ? this.tokenStore.get()
+              : this.config.token;
+          if (!token) throw new Error("Sign in to Oppulence Voice to send captures to Rowboat");
           const response = await fetch(`${this.config.endpoint}/capture-artifacts`, {
             method: "POST",
             headers: {
-              authorization: `Bearer ${this.config.token}`,
+              authorization: `Bearer ${token}`,
               "content-type": "application/json",
               "idempotency-key": row.event_id,
             },
@@ -156,7 +185,22 @@ export class RowboatExportExtension {
       if (!safeStorage.isEncryptionAvailable()) {
         throw new Error("Secure credential storage is unavailable on this system");
       }
-      this.config = { enabled: true, ...RowboatConnectionSchema.parse(payload) };
+      this.config = {
+        enabled: true,
+        authMode: "stored-token",
+        ...RowboatConnectionSchema.parse(payload),
+      };
+      this.saveConfig();
+      void this.drain();
+      return this.status();
+    }
+    if (method === "configureAccount") {
+      if (!this.tokenStore.get()) throw new Error("Sign in to Oppulence Voice first");
+      this.config = {
+        enabled: true,
+        authMode: "oppulence-account",
+        endpoint: validateEndpoint(this.distribution.services.apiUrl),
+      };
       this.saveConfig();
       void this.drain();
       return this.status();

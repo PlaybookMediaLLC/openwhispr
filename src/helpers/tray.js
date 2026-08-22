@@ -1,9 +1,12 @@
 const { Tray, Menu, nativeImage, app } = require("electron");
-const path = require("path");
 const fs = require("fs");
 const debugLogger = require("./debugLogger");
 const dockManager = require("./dockManager");
 const { i18nMain } = require("./i18nMain");
+const { resolveDistributionAssetCandidates } = require("../config/distributionAssets.ts");
+const { resolveReleaseDistribution } = require("./releaseIdentity");
+
+const DISTRIBUTION = resolveReleaseDistribution(require("../../package.json").distribution);
 
 class TrayManager {
   constructor() {
@@ -153,45 +156,16 @@ class TrayManager {
 
   async loadTrayIcon() {
     const platform = process.platform;
-    const isDevelopment = process.env.NODE_ENV === "development";
-
-    const candidatePaths = [];
-
-    if (platform === "darwin") {
-      if (isDevelopment) {
-        candidatePaths.push(path.join(__dirname, "..", "assets", "iconTemplate@3x.png"));
-      } else {
-        candidatePaths.push(
-          path.join(process.resourcesPath, "src", "assets", "iconTemplate@3x.png"),
-          path.join(process.resourcesPath, "assets", "iconTemplate@3x.png"),
-          path.join(
-            process.resourcesPath,
-            "app.asar.unpacked",
-            "src",
-            "assets",
-            "iconTemplate@3x.png"
-          ),
-          path.join(__dirname, "..", "..", "src", "assets", "iconTemplate@3x.png"),
-          path.join(app.getAppPath(), "src", "assets", "iconTemplate@3x.png")
-        );
-      }
-    } else {
-      const fileName = platform === "win32" ? "icon.ico" : "icon.png";
-      if (isDevelopment) {
-        candidatePaths.push(
-          path.join(__dirname, "..", "assets", fileName),
-          path.join(__dirname, "..", "assets", "icon.png")
-        );
-      } else {
-        candidatePaths.push(
-          path.join(process.resourcesPath, "src", "assets", fileName),
-          path.join(process.resourcesPath, "assets", fileName),
-          path.join(process.resourcesPath, "app.asar.unpacked", "src", "assets", fileName),
-          path.join(__dirname, "..", "..", "src", "assets", fileName),
-          path.join(app.getAppPath(), "src", "assets", fileName)
-        );
-      }
-    }
+    const assetPath =
+      platform === "darwin"
+        ? DISTRIBUTION.assets.trayIcon
+        : platform === "win32"
+          ? DISTRIBUTION.assets.windowsIcon
+          : DISTRIBUTION.assets.linuxIcon;
+    const candidatePaths = resolveDistributionAssetCandidates(assetPath, {
+      appPath: app.getAppPath(),
+      resourcesPath: process.resourcesPath,
+    });
 
     for (const testPath of candidatePaths) {
       try {

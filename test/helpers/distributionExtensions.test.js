@@ -18,6 +18,13 @@ test("the Rowboat extension loads through Node's packaged TypeScript runtime", (
   assert.equal(extension.RowboatExportExtension.name, "RowboatExportExtension");
 });
 
+test("the Oppulence cloud extension loads through Node's packaged TypeScript runtime", () => {
+  process.env.ELECTRON_OVERRIDE_DIST_PATH ||= "/tmp";
+  const extension = require("../../extensions/oppulence-cloud/index.ts");
+  assert.equal(typeof extension.create, "function");
+  assert.equal(extension.OppulenceCloudExtension.name, "OppulenceCloudExtension");
+});
+
 test("renderer calls require both an enabled extension and an allowlisted method", async () => {
   const host = new DistributionExtensionHost({
     app: {},

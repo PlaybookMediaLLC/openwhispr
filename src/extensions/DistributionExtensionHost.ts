@@ -8,6 +8,7 @@ const require = createRequire(import.meta.url);
 const SOURCE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 export const EXTENSION_MODULES = Object.freeze({
+  "oppulence-cloud": path.join(SOURCE_ROOT, "extensions", "oppulence-cloud", "index.ts"),
   "rowboat-export": path.join(SOURCE_ROOT, "extensions", "rowboat-export", "index.ts"),
 });
 

@@ -30,9 +30,16 @@ const TEST_FALLBACK_DISTRIBUTION = {
     dbusInterface: "com.openwhispr.App",
   },
   assets: {
+    rendererLogo: "src/assets/logo.svg",
+    rendererIcon: "src/assets/icon.png",
+    trayIcon: "src/assets/iconTemplate@3x.png",
     macIcon: "src/assets/icon.icns",
     windowsIcon: "src/assets/icon.ico",
     linuxIcon: "src/assets/icon.png",
+    macAssetCatalog: {
+      file: "src/assets/Assets.car",
+      iconName: "openwhispr",
+    },
   },
   signing: {
     windowsAzure: {

@@ -1,0 +1,15 @@
+---
+title: Rowboat handoff
+description: Move approved voice artifacts into relationship memory.
+---
+
+The Rowboat export extension converts a local note, transcription, or speaker
+mapping into a versioned capture envelope. The envelope includes explicit
+consent and source provenance.
+
+The API validates the content hash and requires `Idempotency-Key` to equal the
+event identifier. Replaying the same envelope is safe; reusing an identifier for
+different content returns a conflict.
+
+Rowboat can project accepted artifacts into relationship memory without making
+Oppulence Voice responsible for relationship modeling or governed execution.
