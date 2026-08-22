@@ -3,6 +3,7 @@ const test = require("node:test");
 
 const {
   loadDistribution,
+  loadSelectedDistribution,
   validateDistribution,
 } = require("../../src/config/distributionSchema.ts");
 
@@ -19,7 +20,7 @@ test("loads the Oppulence Voice distribution with its owned update identity", ()
     repo: "openwhispr",
     private: false,
   });
-  assert.deepEqual(distribution.extensions, ["rowboat-export"]);
+  assert.deepEqual(distribution.extensions, ["oppulence-cloud", "rowboat-export"]);
 });
 
 test("rejects unknown extensions and mismatched capability flags", () => {
@@ -27,7 +28,7 @@ test("rejects unknown extensions and mismatched capability flags", () => {
 
   assert.throws(
     () => validateDistribution({ ...base, extensions: ["load-arbitrary-module"] }),
-    /expected "rowboat-export"/
+    /expected one of "rowboat-export"\|"oppulence-cloud"/
   );
   assert.throws(
     () =>
@@ -62,5 +63,30 @@ test("rejects malformed application and service identities", () => {
         linux: { ...base.linux, dbusObjectPath: `/${"A/".repeat(10_000)}` },
       }),
     /dbusObjectPath/
+  );
+});
+
+test("Oppulence Voice accepts only secure or loopback API overrides", () => {
+  const local = loadSelectedDistribution({
+    DISTRIBUTION_MANIFEST: "distributions/oppulence-voice.json",
+    OPPULENCE_VOICE_API_URL: "http://127.0.0.1:18080/",
+  });
+  assert.equal(local.services.apiUrl, "http://127.0.0.1:18080");
+
+  assert.throws(
+    () =>
+      loadSelectedDistribution({
+        DISTRIBUTION_MANIFEST: "distributions/oppulence-voice.json",
+        OPPULENCE_VOICE_API_URL: "http://api.example.com",
+      }),
+    /Expected HTTPS or a loopback HTTP URL/
+  );
+  assert.throws(
+    () =>
+      loadSelectedDistribution({
+        DISTRIBUTION_MANIFEST: "distributions/openwhispr.json",
+        OPPULENCE_VOICE_API_URL: "http://127.0.0.1:18080",
+      }),
+    /may only override/
   );
 });

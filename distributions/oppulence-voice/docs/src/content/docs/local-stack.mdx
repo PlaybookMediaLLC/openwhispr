@@ -1,0 +1,35 @@
+---
+title: Local backend stack
+description: Run the released API, PostgreSQL, Redis, Temporal, and worker locally.
+---
+
+The local stack pulls the latest backend image that passed the Rowboat
+production deployment. It does not build or vendor backend source.
+
+The promoted release must contain the Voice API plus the `/devstack` and
+`/rowboat-api-worker` binaries. Those artifacts are published together so the
+desktop never tests against a backend assembled from a different source tree.
+
+```bash
+docker login ghcr.io
+make -C distributions/oppulence-voice pull
+make -C distributions/oppulence-voice up
+make -C distributions/oppulence-voice smoke
+```
+
+The smoke test completes mock WorkOS PKCE authentication, creates a verifier,
+exercises encrypted sync, verifies tombstones, and checks capture idempotency.
+
+Use a specific release or digest when reproducing a failure:
+
+```bash
+ROWBOAT_API_IMAGE=ghcr.io/oppulence-engineering/desktop-assistant-rowboat-api@sha256:… \
+  make -C distributions/oppulence-voice up
+```
+
+Run `make -C distributions/oppulence-voice reset` only when you intentionally
+want to delete the stack's local database and Redis volumes.
+
+The stack defaults to ports `28080` (HTTP API), `28081` (gRPC), `28090` (mock
+identity/providers), `27233` (Temporal), and `25433` (PostgreSQL). Each binding
+has a matching `OPPULENCE_VOICE_*_PORT` Compose environment variable.

@@ -10,6 +10,7 @@ conventions live in CLAUDE.md (upstream owns that file).
 - The local development CLI: `bin/openwhispr` and the `Makefile`.
 - `.github/workflows/sync-upstream.yml` and this file.
 - `distributions/`, `extensions/`, and the small distribution hook modules.
+- `.github/workflows/oppulence-voice-docs.yml` for the fork-owned documentation site.
 
 ## Keep upstream merges cheap
 
@@ -18,6 +19,21 @@ conventions live in CLAUDE.md (upstream owns that file).
    limited to the documented distribution hook points.
 2. Do not reformat upstream files.
 3. App fixes belong upstream. Send them as upstream PRs.
+
+## Current generic upstream hooks
+
+- `src/vite.config.mjs` maps renderer logo imports to the selected manifest.
+- `src/components/CliIntegrationCard.tsx`, `McpIntegrationCard.tsx`, and
+  `ControlPanelSidebar.tsx` import those generic aliases instead of fixed assets.
+- `src/helpers/tray.js` and `linuxAutostart.js` resolve the selected manifest's
+  tray and Linux assets through `src/config/distributionAssets.ts`.
+- `scripts/prepare-release-config.js` maps packaging icons and the optional
+  macOS asset catalog from the selected manifest.
+- `eslint.config.js` excludes the independently checked generated docs subtree
+  from the upstream JavaScript lint pass.
+
+These hooks contain no Oppulence-specific branches. Product assets, Compose,
+smoke tooling, and public docs stay under `distributions/oppulence-voice/`.
 
 ## Upstream sync
 

@@ -155,6 +155,26 @@ function createReleaseConfig(baseConfig, options) {
   config.win = { ...(config.win || {}), icon: distribution.assets.windowsIcon };
   config.win.azureSignOptions = distribution.signing.windowsAzure;
   config.linux = { ...(config.linux || {}), icon: distribution.assets.linuxIcon };
+  config.dmg = { ...(config.dmg || {}), icon: distribution.assets.macIcon };
+
+  const existingMacResources = (config.mac.extraResources || []).filter(
+    (resource) =>
+      typeof resource === "string" ||
+      (resource.to !== "Assets.car" && resource.from !== "src/assets/Assets.car")
+  );
+  if (distribution.assets.macAssetCatalog) {
+    config.mac.extraResources = [
+      ...existingMacResources,
+      { from: distribution.assets.macAssetCatalog.file, to: "Assets.car" },
+    ];
+    config.mac.extendInfo = {
+      ...(config.mac.extendInfo || {}),
+      CFBundleIconName: distribution.assets.macAssetCatalog.iconName,
+    };
+  } else {
+    config.mac.extraResources = existingMacResources;
+    if (config.mac.extendInfo) delete config.mac.extendInfo.CFBundleIconName;
+  }
 
   if (unsignedWindows) {
     config.win = { ...(config.win || {}), azureSignOptions: null };

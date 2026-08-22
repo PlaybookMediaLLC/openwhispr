@@ -1,0 +1,34 @@
+---
+title: Troubleshooting
+description: Diagnose local Oppulence Voice integration failures.
+---
+
+## The backend image cannot be pulled
+
+Run `docker login ghcr.io` and confirm your account can read the Oppulence
+package. `production-latest` is promoted only after a successful deployment.
+
+If an older release reports no ARM64 manifest on Apple Silicon, prefix the
+command with `DOCKER_DEFAULT_PLATFORM=linux/amd64`. Newly promoted releases are
+multi-architecture and do not require emulation.
+
+If `/devstack` is missing, the tag predates the Voice backend release. Publish
+the current Rowboat API through its deployment workflow before retrying; do not
+substitute a locally built API image for `production-latest`.
+
+## Temporal does not become healthy
+
+Inspect `make -C distributions/oppulence-voice logs`. On the first start,
+Temporal creates its own databases in the local PostgreSQL service and can take
+longer than subsequent starts.
+
+## Authentication redirects but the desktop remains signed out
+
+Confirm ports `28080`, `28090`, and the desktop callback port are free. The
+local API token issuer must remain `http://127.0.0.1:28090` while its JWKS URL
+uses the internal `devstack:8090` address.
+
+## Start clean
+
+`make -C distributions/oppulence-voice reset` removes only this Compose
+project's containers and named volumes. It permanently deletes local stack data.

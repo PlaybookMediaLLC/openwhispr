@@ -1,0 +1,15 @@
+---
+title: Authentication and sync
+description: How Oppulence Voice authenticates and relays encrypted artifacts.
+---
+
+Oppulence Voice opens WorkOS AuthKit in the system browser and completes PKCE
+through a loopback callback. The Rowboat API performs the confidential token
+exchange, so the desktop never contains a WorkOS API secret.
+
+Sync records include collection and revision metadata plus a key identifier,
+nonce, ciphertext, and content hash. The service applies compare-and-swap
+revisions while treating content as opaque bytes.
+
+Conflict responses return the current encrypted revision. Deletions are synced
+as tombstones so an offline device cannot silently resurrect removed content.

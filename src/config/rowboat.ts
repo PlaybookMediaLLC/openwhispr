@@ -1,7 +1,13 @@
 import { z } from "zod";
 
 export const ROWBOAT_EXTENSION_ID = "rowboat-export" as const;
-export const ROWBOAT_RENDERER_METHODS = ["getStatus", "configure", "disconnect", "retry"] as const;
+export const ROWBOAT_RENDERER_METHODS = [
+  "getStatus",
+  "configure",
+  "configureAccount",
+  "disconnect",
+  "retry",
+] as const;
 
 export const RowboatRendererMethodSchema = z.enum(ROWBOAT_RENDERER_METHODS);
 
@@ -23,13 +29,22 @@ export const RowboatConnectionSchema = z.object({
   token: z.string().trim().min(1, "Rowboat token is required"),
 });
 
-export const StoredRowboatConfigSchema = z.discriminatedUnion("enabled", [
-  z.object({ enabled: z.literal(false) }),
-  z.object({
-    enabled: z.literal(true),
-    endpoint: RowboatEndpointSchema,
-    encryptedToken: z.string().min(1),
-  }),
+export const StoredRowboatConfigSchema = z.union([
+  z.object({ enabled: z.literal(false) }).strict(),
+  z
+    .object({
+      enabled: z.literal(true),
+      endpoint: RowboatEndpointSchema,
+      authMode: z.literal("oppulence-account"),
+    })
+    .strict(),
+  z
+    .object({
+      enabled: z.literal(true),
+      endpoint: RowboatEndpointSchema,
+      encryptedToken: z.string().min(1),
+    })
+    .strict(),
 ]);
 
 export const RowboatStatusSchema = z.object({

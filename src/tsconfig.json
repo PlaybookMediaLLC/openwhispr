@@ -16,7 +16,9 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@distribution/logo": ["./assets/logo.svg"],
+      "@distribution/icon": ["./assets/icon.png"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"],

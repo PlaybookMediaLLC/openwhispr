@@ -63,6 +63,8 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "."),
+        "@distribution/logo": path.resolve(envDir, distribution.assets.rendererLogo),
+        "@distribution/icon": path.resolve(envDir, distribution.assets.rendererIcon),
       },
     },
     server: {

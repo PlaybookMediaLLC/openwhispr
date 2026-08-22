@@ -30,8 +30,9 @@ not through direct access to either product's internal database.
    application code to small, documented hook points.
 5. Export to Rowboat only after explicit user opt-in. Persist deliveries in a
    separate SQLite outbox and retry until Rowboat acknowledges them.
-6. Keep “OpenWhispr Cloud” as the service name while that managed service remains
-   the actual provider. Product branding must not misrepresent service ownership.
+6. Keep “OpenWhispr Cloud” in the default distribution. The Oppulence Voice
+   distribution uses **Oppulence Cloud**, authenticated through Rowboat's WorkOS
+   broker. Product branding must always identify the service actually in use.
 
 ## Why a separate product
 
@@ -57,7 +58,8 @@ The public manifest controls:
 - managed API, auth, and OAuth callback URLs;
 - GitHub updater owner, repository, and privacy mode;
 - Linux desktop, application, D-Bus service, object, and interface names;
-- platform icon paths and an optional Windows Azure signing profile;
+- renderer, tray, and platform icon paths, an optional macOS asset catalog, and
+  an optional Windows Azure signing profile;
 - capabilities and an allowlisted extension list.
 
 The default local manifest is `distributions/openwhispr.json`. Oppulence release
@@ -77,7 +79,35 @@ which avoids editing every locale file. The transformer preserves the configured
 
 Internal provider keys such as `openwhispr` are data identifiers and are not
 renamed. Hosted service headers, cookie semantics, and API-specific names remain
-unchanged when the app still connects to OpenWhispr Cloud.
+unchanged in the default distribution. Oppulence Voice instead resolves its
+session through the `oppulence-cloud` extension and Rowboat's Better Auth-shaped
+session adapter.
+
+## Oppulence account and API compatibility
+
+The `oppulence-cloud` extension owns the distribution-specific WorkOS AuthKit
+flow. It uses state and PKCE, receives the callback only on the configured
+loopback address, validates the callback host, path, state, and expiry, and keeps
+the refresh bundle encrypted with Electron `safeStorage`. Access tokens use the
+existing token store and refresh fails closed.
+
+The production redirect URI is exactly
+`http://127.0.0.1:5198/oauth/callback`; that URI must be registered in WorkOS
+before release.
+
+The local automation bridge accepts the published `/api/v1` note, folder,
+transcription, format, usage, and search shapes. Requests and responses cross a
+Zod boundary in `src/config/openwhisprApi.ts`. Local database identifiers are
+mapped deterministically to public UUIDs without changing the upstream schema.
+Oppulence personal keys intentionally do not grant workspace access, so the
+spaces endpoint returns `workspace_key_required` rather than pretending to
+support an unimplemented tenancy model.
+
+Oppulence API keys are created and revoked by Rowboat. The desktop verifier
+downloads a short-lived digest-and-scope snapshot over an authenticated WorkOS
+session, caches it encrypted, and compares submitted key digests in constant
+time. Key plaintext is returned once at creation and is never persisted by the
+Rowboat service.
 
 ## Release and updater safety
 
@@ -92,6 +122,45 @@ upstream build with a different signing identity or product contract.
 Release signing identities and final branded icon assets must be Oppulence-owned.
 Until those values and secrets are provisioned, unsigned artifacts are validation
 artifacts and must not be represented as production releases.
+
+The existing Oppulence mark is selected by the distribution manifest for
+renderer, tray, Linux autostart, DMG, macOS, Windows, and Linux packaging. The
+functional animated voice-state symbol is not a brand asset and remains intact.
+Electron Builder converts the distribution's 512-pixel PNG into platform icon
+formats; Oppulence releases remove the upstream `Assets.car` identity.
+
+## Local released-backend stack
+
+The fork-owned Compose project under `distributions/oppulence-voice/` runs
+PostgreSQL, Redis, Temporal, the Rowboat API, the Temporal worker, and a mock
+WorkOS/vendor devstack. It pulls
+`ghcr.io/oppulence-engineering/desktop-assistant-rowboat-api:production-latest`
+and never builds or copies backend source.
+
+Rowboat assigns `production-latest` to the deployed multi-architecture digest
+only after production migrations, rollout checks, and authenticated smoke tests
+pass. Developers can override `ROWBOAT_API_IMAGE` with a versioned tag or digest
+to reproduce a release exactly.
+
+`OPPULENCE_VOICE_API_URL` is a Zod-validated development override accepted only
+for the Oppulence Voice distribution. It permits HTTPS and loopback HTTP, which
+lets main and renderer processes share the local API identity without adding a
+second manifest.
+
+The TypeScript backend smoke client performs mock PKCE authentication, API-key
+creation, verifier retrieval, encrypted sync creation/listing/tombstoning, and
+capture-artifact idempotency checks.
+
+## Product and documentation surfaces
+
+Oppulence Voice is listed as a product at `https://oppulence.io/voice` within
+the existing `rowboat-www` application. It does not own a separate marketing
+deployment.
+
+Public product documentation is a fork-owned Astro Starlight site deployed as
+static Cloudflare Worker assets at `https://docs.oppulence.io`. It links to the
+live Rowboat OpenAPI reference rather than copying generated API contracts into
+the fork.
 
 ## Low-conflict extension seams
 
@@ -125,8 +194,10 @@ The initial `schemaVersion: "1.0"` envelope contains:
 
 The Zod `CaptureArtifactSchema` validates every envelope before enqueueing it.
 The current transport posts to `<configured endpoint>/capture-artifacts` with a
-Bearer token and `Idempotency-Key: <eventId>`. The Rowboat API must either adopt
-this route or publish a versioned adapter before general release.
+Bearer token and `Idempotency-Key: <eventId>`. Rowboat exposes that compatibility
+route and the canonical `/v1/capture-artifacts` route. It verifies the envelope's
+content hash, consent basis, tombstone shape, tenant, and idempotency identity
+before acknowledging it.
 
 The first event set is note add/update/delete, transcription
 add/update/delete/clear, and explicit speaker-mapping update/removal. Speaker
@@ -162,13 +233,16 @@ pending captures” control would require an explicit product decision.
 1. Validate both manifests, generated release configs, branding, extension
    allowlists, and CaptureArtifact schemas in CI.
 2. Provision Oppulence signing identities and final platform assets.
-3. Confirm the Rowboat endpoint, authentication scope, maximum artifact size,
-   acknowledgement response, and deletion-retention behavior.
+3. Deploy the Rowboat migration and API, register the exact WorkOS loopback
+   redirect URI, and configure the production Oppulence API origin.
 4. Run a validate-only release on macOS, Windows, and Linux.
 5. Test upgrades from one Oppulence Voice version to another and confirm that no
    updater request targets the upstream OpenWhispr repository.
 6. Pilot opt-in export, offline capture, retry, duplicate delivery, disconnect,
    and tombstone behavior before enabling broadly.
+7. Add Rowboat's asynchronous relationship projection and the product UI for
+   inspecting projection and deletion status; acknowledgement currently means
+   durable acceptance, not completed graph projection.
 
 ## Success criteria
 

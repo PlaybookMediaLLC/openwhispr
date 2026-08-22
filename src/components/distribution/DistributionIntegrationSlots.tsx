@@ -13,6 +13,7 @@ import { SettingsPanel, SettingsPanelRow } from "../ui/SettingsSection";
 const extensionApi = () => window.electronAPI?.distributionExtensions;
 
 function RowboatIntegrationCard() {
+  const usesOppulenceAccount = distribution.extensions.includes("oppulence-cloud");
   const [status, setStatus] = useState<RowboatStatus | null>(null);
   const [endpoint, setEndpoint] = useState("");
   const [token, setToken] = useState("");
@@ -71,27 +72,36 @@ function RowboatIntegrationCard() {
 
             {!status?.enabled ? (
               <div className="space-y-2 pl-12">
-                <Input
-                  value={endpoint}
-                  onChange={(event) => setEndpoint(event.target.value)}
-                  placeholder="https://rowboat.example.com/api"
-                  aria-label="Rowboat API endpoint"
-                />
-                <Input
-                  type="password"
-                  value={token}
-                  onChange={(event) => setToken(event.target.value)}
-                  placeholder="Rowboat capture token"
-                  aria-label="Rowboat capture token"
-                />
-                <Button
-                  size="sm"
-                  disabled={busy || !endpoint.trim() || !token.trim()}
-                  onClick={() => run("configure", { endpoint, token })}
-                >
-                  {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                  Connect to Rowboat
-                </Button>
+                {usesOppulenceAccount ? (
+                  <Button size="sm" disabled={busy} onClick={() => run("configureAccount")}>
+                    {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                    Send to Rowboat with Oppulence account
+                  </Button>
+                ) : (
+                  <>
+                    <Input
+                      value={endpoint}
+                      onChange={(event) => setEndpoint(event.target.value)}
+                      placeholder="https://rowboat.example.com/api"
+                      aria-label="Rowboat API endpoint"
+                    />
+                    <Input
+                      type="password"
+                      value={token}
+                      onChange={(event) => setToken(event.target.value)}
+                      placeholder="Rowboat capture token"
+                      aria-label="Rowboat capture token"
+                    />
+                    <Button
+                      size="sm"
+                      disabled={busy || !endpoint.trim() || !token.trim()}
+                      onClick={() => run("configure", { endpoint, token })}
+                    >
+                      {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                      Connect to Rowboat
+                    </Button>
+                  </>
+                )}
               </div>
             ) : (
               <div className="flex items-center justify-between gap-3 pl-12">

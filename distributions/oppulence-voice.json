@@ -9,11 +9,11 @@
   "runtimeNamespace": "oppulence-voice",
   "windowsSafeCacheDirectory": "OppulenceVoice",
   "supportEmail": "support@oppulence.com",
-  "cloudDisplayName": "OpenWhispr Cloud",
+  "cloudDisplayName": "Oppulence Cloud",
   "services": {
-    "apiUrl": "https://api.openwhispr.com",
-    "authUrl": "https://auth.openwhispr.com",
-    "oauthCallbackUrl": "https://openwhispr.com/auth/desktop-callback"
+    "apiUrl": "https://api.oppulence.io",
+    "authUrl": "https://api.oppulence.io",
+    "oauthCallbackUrl": "http://127.0.0.1:5198/oauth/callback"
   },
   "updates": {
     "provider": "github",
@@ -29,9 +29,13 @@
     "dbusInterface": "engineering.oppulence.Voice.Shortcuts"
   },
   "assets": {
-    "macIcon": "src/assets/icon.icns",
-    "windowsIcon": "src/assets/icon.ico",
-    "linuxIcon": "src/assets/icon.png"
+    "rendererLogo": "distributions/oppulence-voice/assets/oppulence-mark.png",
+    "rendererIcon": "distributions/oppulence-voice/assets/oppulence-mark.png",
+    "trayIcon": "distributions/oppulence-voice/assets/oppulence-mark.png",
+    "macIcon": "distributions/oppulence-voice/assets/oppulence-mark.png",
+    "windowsIcon": "distributions/oppulence-voice/assets/oppulence-mark.png",
+    "linuxIcon": "distributions/oppulence-voice/assets/oppulence-mark.png",
+    "macAssetCatalog": null
   },
   "signing": {
     "windowsAzure": null
@@ -40,5 +44,5 @@
     "managedCloud": true,
     "rowboatExport": true
   },
-  "extensions": ["rowboat-export"]
+  "extensions": ["oppulence-cloud", "rowboat-export"]
 }

@@ -1,0 +1,19 @@
+---
+title: API
+description: Oppulence Voice authentication, sync, and capture endpoints.
+---
+
+The Rowboat API exposes the Oppulence Voice cloud surface at
+`https://api.oppulence.io`.
+
+Important endpoint groups include:
+
+- `/v1/auth/workos/*` for desktop authentication and refresh
+- `/api/v1/keys/*` for one-time API-key creation and revocation
+- `/v1/voice/api-key-verifiers` for authenticated verifier snapshots
+- `/v1/voice-sync/items` for opaque encrypted synchronization
+- `/v1/capture-artifacts` for explicitly consented Rowboat handoffs
+
+See the [live OpenAPI reference](https://api.oppulence.io/docs) for request and
+response schemas. Network responses are runtime-validated with Zod in the
+desktop integration.

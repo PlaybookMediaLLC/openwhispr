@@ -10,6 +10,7 @@ import {
   type SocialProvider,
 } from "../lib/auth";
 import { OPENWHISPR_API_URL } from "../config/constants";
+import { distribution } from "../config/distribution";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { AlertCircle, ArrowRight, Building2, Check, Loader2, ChevronLeft } from "lucide-react";
@@ -134,6 +135,8 @@ export default function AuthenticationStep({
   const [error, setError] = useState<string | null>(null);
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const [oauthProtocolRegistered, setOauthProtocolRegistered] = useState(true);
+  const usesOppulenceAuthKit = distribution.extensions.includes("oppulence-cloud");
+  const authHandoffAvailable = usesOppulenceAuthKit || oauthProtocolRegistered;
   const isMacOS = getCachedPlatform() === "darwin";
 
   const needsVerificationRef = useRef(false);
@@ -228,6 +231,10 @@ export default function AuthenticationStep({
     setError(null);
 
     try {
+      if (usesOppulenceAuthKit) {
+        await startSSOSignIn(email);
+        return;
+      }
       if (!OPENWHISPR_API_URL) {
         setAuthMode("sign-up");
         return;
@@ -264,7 +271,7 @@ export default function AuthenticationStep({
     } finally {
       setIsCheckingEmail(false);
     }
-  }, [email, startSSOSignIn, t]);
+  }, [email, startSSOSignIn, t, usesOppulenceAuthKit]);
 
   const errorMessageIncludes = (message: string | undefined, keywords: string[]): boolean => {
     if (!message) return false;
@@ -446,7 +453,7 @@ export default function AuthenticationStep({
           <Button
             type="button"
             onClick={handleSSOSignIn}
-            disabled={isSSOLoading || !oauthProtocolRegistered}
+            disabled={isSSOLoading || !authHandoffAvailable}
             className="h-12 w-full rounded-full"
           >
             {isSSOLoading ? (
@@ -690,14 +697,14 @@ export default function AuthenticationStep({
               label={provider.label}
               icon={provider.icon}
               loading={provider.loading}
-              disabled={busy || !oauthProtocolRegistered}
-              title={!oauthProtocolRegistered ? t("auth.social.protocolUnavailable") : undefined}
+              disabled={busy || !authHandoffAvailable}
+              title={!authHandoffAvailable ? t("auth.social.protocolUnavailable") : undefined}
               onClick={provider.onClick}
             />
           ))}
         </div>
 
-        {!oauthProtocolRegistered && (
+        {!authHandoffAvailable && (
           <p className="mt-2 text-center text-xs leading-tight text-muted-foreground/80">
             {t("auth.social.protocolUnavailable")}
           </p>

@@ -139,6 +139,12 @@ test("an Oppulence release never inherits the upstream Windows signing profile",
 
   assert.equal(config.win.azureSignOptions, null);
   assert.equal(config.extraMetadata.distribution.id, "oppulence-voice");
+  assert.equal(config.mac.icon, "distributions/oppulence-voice/assets/oppulence-mark.png");
+  assert.equal(config.win.icon, "distributions/oppulence-voice/assets/oppulence-mark.png");
+  assert.equal(config.linux.icon, "distributions/oppulence-voice/assets/oppulence-mark.png");
+  assert.equal(config.dmg.icon, "distributions/oppulence-voice/assets/oppulence-mark.png");
+  assert.deepEqual(config.mac.extraResources, []);
+  assert.equal(config.mac.extendInfo.CFBundleIconName, undefined);
 });
 
 test("release CI cannot redirect an Oppulence updater to the checkout repository", () => {

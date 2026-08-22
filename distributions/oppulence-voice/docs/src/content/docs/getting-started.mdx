@@ -1,0 +1,26 @@
+---
+title: Install and run
+description: Start the Oppulence Voice distribution locally.
+---
+
+## Requirements
+
+- Node.js and npm versions supported by the OpenWhispr repository
+- The native build requirements for your operating system
+- Docker Desktop or a compatible Docker Engine for cloud integration testing
+
+## Desktop development
+
+```bash
+npm install
+npm run dev:oppulence
+```
+
+To run against the local Rowboat release stack, use the distribution Makefile:
+
+```bash
+make -C distributions/oppulence-voice dev
+```
+
+This selects `distributions/oppulence-voice.json` and points the distribution at
+the loopback API without changing the production manifest.

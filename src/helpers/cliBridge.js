@@ -7,6 +7,8 @@ const debugLogger = require("./debugLogger");
 const { isPortAvailable } = require("../utils/serverUtils");
 const { broadcastToWindows } = require("./windowBroadcast");
 const { resolveReleaseDistribution } = require("./releaseIdentity");
+const tokenStore = require("./tokenStore");
+const { OppulencePublicAPI } = require("../../extensions/oppulence-cloud/publicApi.ts");
 
 const DISTRIBUTION = resolveReleaseDistribution(require("../../package.json").distribution);
 
@@ -90,6 +92,16 @@ class CliBridge {
     this.port = null;
     this.token = null;
     this.bridgeFilePath = getBridgeFilePath();
+    this.oppulencePublicAPI =
+      DISTRIBUTION.id === "oppulence-voice"
+        ? new OppulencePublicAPI({
+            app: require("electron").app,
+            apiURL: DISTRIBUTION.services.apiUrl,
+            ipcHandlers,
+            logger: debugLogger,
+            tokenStore,
+          })
+        : null;
     this.routes = this._buildRouteTable();
   }
 
@@ -170,6 +182,12 @@ class CliBridge {
       return;
     }
 
+    const url = new URL(req.url || "/", `http://${HOST}:${this.port}`);
+    if (this.oppulencePublicAPI?.canHandle(url.pathname)) {
+      await this.oppulencePublicAPI.handle(req, res, url);
+      return;
+    }
+
     const auth = req.headers["authorization"] || "";
     const expected = `Bearer ${this.token}`;
     if (
@@ -180,7 +198,6 @@ class CliBridge {
       return;
     }
 
-    const url = new URL(req.url || "/", `http://${HOST}:${this.port}`);
     const route = this._matchRoute(req.method, url.pathname);
     if (!route) {
       sendV1Error(res, 404, "not_found", "Not found");

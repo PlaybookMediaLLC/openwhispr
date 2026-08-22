@@ -10,6 +10,7 @@
     "src/config/branding.ts",
     "src/config/distribution.ts",
     "src/config/distributionSchema.ts",
+    "src/config/distributionAssets.ts",
     "src/config/rowboat.ts",
     "src/helpers/windowBroadcast.js"
   ],

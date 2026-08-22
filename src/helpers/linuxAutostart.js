@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const os = require("os");
 const { HIDDEN_LAUNCH_FLAG } = require("./autoStartPolicy");
+const { resolveDistributionAssetCandidates } = require("../config/distributionAssets.ts");
 const { resolveReleaseDistribution } = require("./releaseIdentity");
 
 const DISTRIBUTION = resolveReleaseDistribution(require("../../package.json").distribution);
@@ -62,14 +63,10 @@ function resolveExecutablePath() {
 }
 
 function findBundledIconSource() {
-  const candidates =
-    isDevelopment() || !process.resourcesPath
-      ? [path.join(__dirname, "..", "assets", "icon.png")]
-      : [
-          path.join(process.resourcesPath, "src", "assets", "icon.png"),
-          path.join(process.resourcesPath, "assets", "icon.png"),
-          path.join(process.resourcesPath, "app.asar.unpacked", "src", "assets", "icon.png"),
-        ];
+  const candidates = resolveDistributionAssetCandidates(DISTRIBUTION.assets.linuxIcon, {
+    appPath: require("electron").app?.getAppPath?.(),
+    resourcesPath: process.resourcesPath,
+  });
   return candidates.find((candidate) => fs.existsSync(candidate)) || null;
 }
 

@@ -7,6 +7,7 @@ module.exports = [
       "dist/**",
       "node_modules/**",
       "src/dist/**",
+      "distributions/oppulence-voice/docs/**",
       "*.min.js",
       "build/**",
       "src/**", // src has its own config
