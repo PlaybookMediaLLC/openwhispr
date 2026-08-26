@@ -7,6 +7,86 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+# [1.11.0](https://github.com/PlaybookMediaLLC/openwhispr/compare/v1.10.0...v1.11.0) (2026-08-26)
+
+
+### Bug Fixes
+
+* **ai:** retry HTTP 408 request timeouts in the API retry strategy ([#1734](https://github.com/PlaybookMediaLLC/openwhispr/issues/1734)) ([d3661cb](https://github.com/PlaybookMediaLLC/openwhispr/commit/d3661cb0c5d15f4f474395fd30a085b93b74544f))
+* **auth:** Unify onboarding and reauthentication display ([#1763](https://github.com/PlaybookMediaLLC/openwhispr/issues/1763)) ([3cc197f](https://github.com/PlaybookMediaLLC/openwhispr/commit/3cc197ff3b91a4c6c74f979af3dcbca011e68bda))
+* **calendar:** fail OAuth loopback immediately on state mismatch ([#1753](https://github.com/PlaybookMediaLLC/openwhispr/issues/1753)) ([8b77a59](https://github.com/PlaybookMediaLLC/openwhispr/commit/8b77a599ce91172e421ca0cd4f8bd5fd3cbae47f))
+* **calendar:** group date-only upcoming events on the local calendar day ([2ef397b](https://github.com/PlaybookMediaLLC/openwhispr/commit/2ef397bcae4fd0f4b01bcf2a6f110bf855e78c31))
+* **calendar:** resolve Microsoft series masters through their calendar ([#1835](https://github.com/PlaybookMediaLLC/openwhispr/issues/1835)) ([a0bbf4f](https://github.com/PlaybookMediaLLC/openwhispr/commit/a0bbf4f9927acdafe0a77c3b24c983c9becd8591))
+* **chat:** persist conversation migration links ([#1772](https://github.com/PlaybookMediaLLC/openwhispr/issues/1772)) ([15b5b3f](https://github.com/PlaybookMediaLLC/openwhispr/commit/15b5b3fd87e61ba059d033c4592fb4909e37af65))
+* click should be the delibrate action to select model for STT models ([90cfe03](https://github.com/PlaybookMediaLLC/openwhispr/commit/90cfe0330759400a9a25c27efcee07bf68899632))
+* **cli:** enforce request body byte limit ([#1777](https://github.com/PlaybookMediaLLC/openwhispr/issues/1777)) ([996fe79](https://github.com/PlaybookMediaLLC/openwhispr/commit/996fe79b78846f9b1504c8f629257c7a33779add))
+* **cli:** preserve UTF-8 request bodies ([#1386](https://github.com/PlaybookMediaLLC/openwhispr/issues/1386)) ([ef627c9](https://github.com/PlaybookMediaLLC/openwhispr/commit/ef627c967f6cefe2ec391f176fffc758c7a35de1))
+* **diarization:** diarize the mic track for in-person meetings — fixes [#1627](https://github.com/PlaybookMediaLLC/openwhispr/issues/1627) ([0a10184](https://github.com/PlaybookMediaLLC/openwhispr/commit/0a10184c3a4097aa82cbe56ac1488855aed1cb97))
+* **diarization:** skip orphan speaker embeddings in softened mic mode ([2ffbe35](https://github.com/PlaybookMediaLLC/openwhispr/commit/2ffbe357d900ce4eb0256ed96fc0bbbf581d993b))
+* **dictation:** initialize onboarding event ref safely ([#1756](https://github.com/PlaybookMediaLLC/openwhispr/issues/1756)) ([c5d515b](https://github.com/PlaybookMediaLLC/openwhispr/commit/c5d515b95d615d5d47aa3c1978f0f40e103b94bd))
+* dismiss dictation preview when no audio detected ([#1667](https://github.com/PlaybookMediaLLC/openwhispr/issues/1667)) ([7208bdf](https://github.com/PlaybookMediaLLC/openwhispr/commit/7208bdf815f1bdeee209626dfe0ffba9a9c431bd))
+* **history:** keep the wide two-column layout regardless of calendar connection ([d45d1d2](https://github.com/PlaybookMediaLLC/openwhispr/commit/d45d1d27b2de3c8b310678cd50587c44212b4a2d))
+* **i18n:** guard localStorage deref against partial window stubs ([#1842](https://github.com/PlaybookMediaLLC/openwhispr/issues/1842)) ([0686a26](https://github.com/PlaybookMediaLLC/openwhispr/commit/0686a26942c0047aa6f9ab68417800498bb1235c))
+* **linux:** map KDE punctuation hotkeys to Qt key codes ([#1752](https://github.com/PlaybookMediaLLC/openwhispr/issues/1752)) ([523acab](https://github.com/PlaybookMediaLLC/openwhispr/commit/523acab0fb2c19423e11167c3077d660d9c2acb3))
+* **linux:** Preserve focus for Sway overlays ([#1718](https://github.com/PlaybookMediaLLC/openwhispr/issues/1718)) ([063b5b6](https://github.com/PlaybookMediaLLC/openwhispr/commit/063b5b6a9fb90b80b66ab2495f97535177b49432))
+* **linux:** push-to-talk on Wayland (Hyprland, KDE, GNOME 48+) for dictation hotkey ([#1738](https://github.com/PlaybookMediaLLC/openwhispr/issues/1738)) ([b5c5fb4](https://github.com/PlaybookMediaLLC/openwhispr/commit/b5c5fb44305b65d2fd2d8c17a99cb743228442fb))
+* **local-llm:** Phase 0 correctness + hygiene fixes for local model params and canaries ([#1714](https://github.com/PlaybookMediaLLC/openwhispr/issues/1714)) ([41cf1d4](https://github.com/PlaybookMediaLLC/openwhispr/commit/41cf1d461761e11c47c4897e455df5582a7665aa)), closes [#1176](https://github.com/PlaybookMediaLLC/openwhispr/issues/1176) [#1021](https://github.com/PlaybookMediaLLC/openwhispr/issues/1021) [#1611](https://github.com/PlaybookMediaLLC/openwhispr/issues/1611)
+* **logging:** Suppress packaged Windows console output ([#1719](https://github.com/PlaybookMediaLLC/openwhispr/issues/1719)) ([30dedcf](https://github.com/PlaybookMediaLLC/openwhispr/commit/30dedcf31f3b8abb885c0824a3d4cf080967bdcb))
+* make model selection an explicit click and only bootstrap if no model is selected/downloaed ([b9b5335](https://github.com/PlaybookMediaLLC/openwhispr/commit/b9b5335d3bac947f6816b166729d959e9cdf00e7))
+* **meeting:** handle nullish segments and non-object patches in speakerAssignmentPolicy ([#1798](https://github.com/PlaybookMediaLLC/openwhispr/issues/1798)) ([c519e1f](https://github.com/PlaybookMediaLLC/openwhispr/commit/c519e1f74b5f306e815cd9dae71e2f06667f3b39)), closes [#1797](https://github.com/PlaybookMediaLLC/openwhispr/issues/1797)
+* Mode-switch validity guard ([58d9af0](https://github.com/PlaybookMediaLLC/openwhispr/commit/58d9af0d2f37eefe1e208f0b9a576d99eb285e53))
+* **models:** Honor redirected cache roots ([#1721](https://github.com/PlaybookMediaLLC/openwhispr/issues/1721)) ([da39195](https://github.com/PlaybookMediaLLC/openwhispr/commit/da39195afaf464cb8dc3f0bad8b0810d838d5abb)), closes [#1279](https://github.com/PlaybookMediaLLC/openwhispr/issues/1279)
+* **network:** treat the full IPv6 link-local range as private HTTP ([#1733](https://github.com/PlaybookMediaLLC/openwhispr/issues/1733)) ([1fe91f2](https://github.com/PlaybookMediaLLC/openwhispr/commit/1fe91f215832c475ae99873f36c6708f909301f0))
+* **notes:** abort local transcription and diarization when an upload is cancelled — fixes [#1401](https://github.com/PlaybookMediaLLC/openwhispr/issues/1401) ([7bbc04c](https://github.com/PlaybookMediaLLC/openwhispr/commit/7bbc04c4ad34a5db5d9dba4aacd0b18d12db7cb8))
+* **notes:** format future timestamps as dates ([#1768](https://github.com/PlaybookMediaLLC/openwhispr/issues/1768)) ([5d5f08c](https://github.com/PlaybookMediaLLC/openwhispr/commit/5d5f08c3bbb59b97066b90cdda008525b041765d))
+* **notes:** keep markdown mirror paths inside base ([#1773](https://github.com/PlaybookMediaLLC/openwhispr/issues/1773)) ([2893be4](https://github.com/PlaybookMediaLLC/openwhispr/commit/2893be42a54844e1fba23100847ffe89231870a8))
+* **notes:** keep note content visible above the floating chat panel ([#1769](https://github.com/PlaybookMediaLLC/openwhispr/issues/1769)) ([fa11ddc](https://github.com/PlaybookMediaLLC/openwhispr/commit/fa11ddc9040c4f26c689398138f390d8af8ef2cd))
+* **notes:** reject cancelled uploads before ffmpeg conversion and server boot ([53ec075](https://github.com/PlaybookMediaLLC/openwhispr/commit/53ec07519df6c7ca14717bcfeb4d39ee067f3310))
+* **parakeet:** Clarify unsupported-macOS guidance and dedupe version compare ([cd4dedc](https://github.com/PlaybookMediaLLC/openwhispr/commit/cd4dedc7477de7c4b90f47fd7ad80c8c3e9fa24e)), closes [#862](https://github.com/PlaybookMediaLLC/openwhispr/issues/862) [#764](https://github.com/PlaybookMediaLLC/openwhispr/issues/764) [#862](https://github.com/PlaybookMediaLLC/openwhispr/issues/862)
+* **parakeet:** Gate incompatible macOS runtime ([0c271fe](https://github.com/PlaybookMediaLLC/openwhispr/commit/0c271fefd5e98b20052e99e503dc306e0f2dcf1b)), closes [#862](https://github.com/PlaybookMediaLLC/openwhispr/issues/862)
+* **parakeet:** Localize disabled provider tab labels ([514866c](https://github.com/PlaybookMediaLLC/openwhispr/commit/514866c362e53c5c598c31bf89a2c8233e42c781)), closes [#862](https://github.com/PlaybookMediaLLC/openwhispr/issues/862)
+* **paste:** skip trailing space after CJK text in append smart spacing ([#1823](https://github.com/PlaybookMediaLLC/openwhispr/issues/1823)) ([f26b059](https://github.com/PlaybookMediaLLC/openwhispr/commit/f26b0595d2470036823c1dcddab7693b7ef9b610))
+* retire dead cloud models and make the canary suites trustworthy ([#1722](https://github.com/PlaybookMediaLLC/openwhispr/issues/1722)) ([9b3f57a](https://github.com/PlaybookMediaLLC/openwhispr/commit/9b3f57a4c6a1c6f13d836efcedc60d9908b5f649))
+* **settings:** Clamp the LLM request timeout input on blur ([7032088](https://github.com/PlaybookMediaLLC/openwhispr/commit/70320880b7ec7e72eb23ca9d2beae410adbd6fa2))
+* **settings:** close stale-state gaps in explicit model selection ([82fd37a](https://github.com/PlaybookMediaLLC/openwhispr/commit/82fd37aaf9e5a0a6c595a5a54671c7d86bafa72e))
+* **settings:** enforce auto-end and request timeout defaults ([#1755](https://github.com/PlaybookMediaLLC/openwhispr/issues/1755)) ([77c6661](https://github.com/PlaybookMediaLLC/openwhispr/commit/77c6661e1d6a7827b2243d6c9a800746c66a4761))
+* **settings:** harden browse-only provider tabs and drop dead code ([983bf58](https://github.com/PlaybookMediaLLC/openwhispr/commit/983bf58f34164c58c54f06a2b9bf288b8cbd7594))
+* **settings:** keep the browsed whisper-list validation off foreign local models ([204e83b](https://github.com/PlaybookMediaLLC/openwhispr/commit/204e83b76053d6b8bbb8494e2828d4182398dc6c))
+* **snippets:** do not crash snippet expansion when the list is nullish ([773fed0](https://github.com/PlaybookMediaLLC/openwhispr/commit/773fed0ac7432d7231655fd5b89c3498d78f0e62))
+* **stores:** Survive imports under partial browser window stubs ([#1841](https://github.com/PlaybookMediaLLC/openwhispr/issues/1841)) ([b934b88](https://github.com/PlaybookMediaLLC/openwhispr/commit/b934b889cfb46d91e21bce5333360ea3f9d44d16))
+* **uploads:** anchor upload transcript timestamps to the meeting path's epoch-ms base ([df826f0](https://github.com/PlaybookMediaLLC/openwhispr/commit/df826f06429710fcfe5f6ac4c555363f7bc456d1))
+* **uploads:** normalize provider names and clamp verbose segment timestamps ([#1800](https://github.com/PlaybookMediaLLC/openwhispr/issues/1800)) ([d9499f5](https://github.com/PlaybookMediaLLC/openwhispr/commit/d9499f59ffd9a1e0f19b278ff10736ea64fc351c)), closes [#1799](https://github.com/PlaybookMediaLLC/openwhispr/issues/1799)
+* **utils:** handle nullish and invalid inputs safely in date formatting ([#1783](https://github.com/PlaybookMediaLLC/openwhispr/issues/1783)) ([#1784](https://github.com/PlaybookMediaLLC/openwhispr/issues/1784)) ([858e824](https://github.com/PlaybookMediaLLC/openwhispr/commit/858e82408789f40a787d3a255a96df088d065cad))
+* validate transcription hosts exactly ([8aced79](https://github.com/PlaybookMediaLLC/openwhispr/commit/8aced791c97614e12a30ade3f35563fcd9fbfbae))
+* **whisper:** accept any casing for the GPU opt-out flag ([28bf6f4](https://github.com/PlaybookMediaLLC/openwhispr/commit/28bf6f44583b0859efa3bc04e48c95e0709867ac))
+* **whisper:** engage downloaded GPU packs without the env flag ([d4c207a](https://github.com/PlaybookMediaLLC/openwhispr/commit/d4c207a29f78bc1ac69abb29b09c7d0397ff657b)), closes [#1340](https://github.com/PlaybookMediaLLC/openwhispr/issues/1340)
+* **whisper:** raise decoder anti-hallucination thresholds on local transcription — fixes [#1458](https://github.com/PlaybookMediaLLC/openwhispr/issues/1458) ([b7fdf80](https://github.com/PlaybookMediaLLC/openwhispr/commit/b7fdf80bfeed8736f0b1b221772d96013132c3ed))
+* **windows:** block untrusted file navigation ([#1776](https://github.com/PlaybookMediaLLC/openwhispr/issues/1776)) ([45c20b8](https://github.com/PlaybookMediaLLC/openwhispr/commit/45c20b809c2907dbe5a290a9ee8d80f8d0c5e8cd))
+* **windows:** restore the captured target window before pasting — fixes [#859](https://github.com/PlaybookMediaLLC/openwhispr/issues/859) ([de9e335](https://github.com/PlaybookMediaLLC/openwhispr/commit/de9e335a89a7c6a4234200e439e8caca1f102eba)), closes [#668](https://github.com/PlaybookMediaLLC/openwhispr/issues/668)
+
+
+### Features
+
+* **billing:** self-serve Enterprise upgrade + admin console entry ([#1623](https://github.com/PlaybookMediaLLC/openwhispr/issues/1623)) ([e039861](https://github.com/PlaybookMediaLLC/openwhispr/commit/e039861115491b3d7c7e61c30d07ea66c2606d15))
+* **calendar:** add provider-neutral availability tool ([#1821](https://github.com/PlaybookMediaLLC/openwhispr/issues/1821)) ([b96f4a2](https://github.com/PlaybookMediaLLC/openwhispr/commit/b96f4a28275c958600295ed4e9c7b4dc35fc0455))
+* **calendar:** redesign Coming up sidebar with join-and-take-notes and empty states ([a5e59ee](https://github.com/PlaybookMediaLLC/openwhispr/commit/a5e59ee400a2179f57e7eb6e1564197ed649bdb2))
+* complete Oppulence Voice cloud integration ([fed389c](https://github.com/PlaybookMediaLLC/openwhispr/commit/fed389c73583a6197ac24fe9b85b3b819853b96d))
+* **hyprland:** support both Lua and legacy configs ([#1664](https://github.com/PlaybookMediaLLC/openwhispr/issues/1664)) ([47da21d](https://github.com/PlaybookMediaLLC/openwhispr/commit/47da21d93221ecf72d6dae2ab4480dd70e714924))
+* **llm:** Apply the configurable request timeout to the Tinfoil provider ([f240775](https://github.com/PlaybookMediaLLC/openwhispr/commit/f2407757f71f0e74d060e3141af25465a1693883)), closes [#1479](https://github.com/PlaybookMediaLLC/openwhispr/issues/1479)
+* **meetings:** Auto-end forgotten meeting recordings ([#1494](https://github.com/PlaybookMediaLLC/openwhispr/issues/1494)) ([bc306d2](https://github.com/PlaybookMediaLLC/openwhispr/commit/bc306d27d40e2b12d036846f33bb758eaf987b56))
+* **models:** add Gemini 3.5 and 3.1 Flash Lite models ([#1702](https://github.com/PlaybookMediaLLC/openwhispr/issues/1702)) ([90f79b6](https://github.com/PlaybookMediaLLC/openwhispr/commit/90f79b6879d8b2d18cdd4b9997c56c924bccd4c6))
+* **notes:** real speaker identity in note generation and [@mention](https://github.com/mention) owner tagging ([672cc90](https://github.com/PlaybookMediaLLC/openwhispr/commit/672cc901a5c062adf313a27774580dd43155a162))
+* **onboarding:** rebuild guided setup experience ([#1670](https://github.com/PlaybookMediaLLC/openwhispr/issues/1670)) ([9382171](https://github.com/PlaybookMediaLLC/openwhispr/commit/93821710af5354ffec9db13e106ccc297c27b87b)), closes [#141414](https://github.com/PlaybookMediaLLC/openwhispr/issues/141414)
+* **policy:** Enforce org-required local model downloads ([#1836](https://github.com/PlaybookMediaLLC/openwhispr/issues/1836)) ([409bc28](https://github.com/PlaybookMediaLLC/openwhispr/commit/409bc28d35bad09be1875a164090fb8fb303a089))
+* **policy:** Mirror the server-only memoryEnabled org-policy field ([#1717](https://github.com/PlaybookMediaLLC/openwhispr/issues/1717)) ([91c1195](https://github.com/PlaybookMediaLLC/openwhispr/commit/91c119501b0b6fec874989081dbe98ae56db7f67))
+* **sidebar:** redesign Upgrade to Pro banner to new card style ([973cbf5](https://github.com/PlaybookMediaLLC/openwhispr/commit/973cbf5460527a8d9e46627abb715fb8454796b6))
+* **uploads:** persist segment timestamps from BYOK cloud transcriptions for SRT export — fixes [#1095](https://github.com/PlaybookMediaLLC/openwhispr/issues/1095) ([aada021](https://github.com/PlaybookMediaLLC/openwhispr/commit/aada0217ea864f4021be6af5993c8015f5c25f91))
+
+
+### Performance Improvements
+
+* **windows:** skip the paste settle when the target is already foreground ([0266639](https://github.com/PlaybookMediaLLC/openwhispr/commit/02666397f9c6bf452c2f667154ce3f887a31814c))
+
 # [1.10.0](https://github.com/PlaybookMediaLLC/openwhispr/compare/v1.9.0...v1.10.0) (2026-08-21)
 
 
