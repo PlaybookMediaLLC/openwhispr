@@ -53,6 +53,7 @@ export class OppulenceCloudExtension {
 
   private readonly apiURL: string;
   private readonly callbackURL: URL;
+  private readonly brokerURL: string | null;
   private readonly sessionPath: string;
   private readonly tokenStore: TokenStore;
   private readonly logger: ExtensionLogger;
@@ -71,6 +72,7 @@ export class OppulenceCloudExtension {
     ) {
       throw new Error("Oppulence OAuth callback must use an explicit 127.0.0.1 loopback port");
     }
+    this.brokerURL = distribution.services.oauthBrokerUrl ?? null;
     this.sessionPath = path.join(app.getPath("userData"), "oppulence-workos-session.bin");
     this.logger = logger;
     this.tokenStore = require("../../src/helpers/tokenStore.js") as TokenStore;
@@ -159,13 +161,16 @@ export class OppulenceCloudExtension {
     const provider = z
       .object({ provider: WorkOSProviderSchema.default("authkit") })
       .parse(payload ?? {}).provider;
-    const state = crypto.randomBytes(32).toString("base64url");
+    const state = this.buildState();
     const verifier = crypto.randomBytes(32).toString("base64url");
     const challenge = crypto.createHash("sha256").update(verifier).digest("base64url");
     this.pending = { state, verifier, expiresAt: Date.now() + CALLBACK_TIMEOUT_MS };
 
     const query = new URLSearchParams({
-      redirect_uri: this.callbackURL.toString(),
+      // With a broker, the identity provider redirects to the registered web
+      // URL, which bounces the code here. Asking for the loopback URI directly
+      // would be rejected as an unregistered redirect URI.
+      redirect_uri: this.brokerURL ?? this.callbackURL.toString(),
       state,
       code_challenge: challenge,
       provider,
@@ -180,6 +185,18 @@ export class OppulenceCloudExtension {
     const login = WorkOSLoginURLResponseSchema.parse(await response.json());
     await shell.openExternal(login.url);
     return this.status();
+  }
+
+  /**
+   * Builds the OAuth `state`. Without a broker this is just an unguessable
+   * nonce. With one, the broker needs to know which loopback port to bounce the
+   * code back to, and `state` is the only value that survives the round trip
+   * unaltered, so the port is prefixed onto the same nonce. The nonce is still
+   * compared verbatim on return, so the added prefix weakens nothing.
+   */
+  private buildState(): string {
+    const nonce = crypto.randomBytes(32).toString("base64url");
+    return this.brokerURL ? `desktop.${this.callbackURL.port}.${nonce}` : nonce;
   }
 
   private async refreshIfNeeded(): Promise<void> {

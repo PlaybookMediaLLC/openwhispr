@@ -13,7 +13,8 @@
   "services": {
     "apiUrl": "https://api.oppulence.io",
     "authUrl": "https://api.oppulence.io",
-    "oauthCallbackUrl": "http://127.0.0.1:5198/oauth/callback"
+    "oauthCallbackUrl": "http://127.0.0.1:5198/oauth/callback",
+    "oauthBrokerUrl": "https://oppulence.io/api/auth/workos/callback"
   },
   "updates": {
     "provider": "github",
@@ -45,8 +46,5 @@
     "managedCloud": true,
     "rowboatExport": true
   },
-  "extensions": [
-    "oppulence-cloud",
-    "rowboat-export"
-  ]
+  "extensions": ["oppulence-cloud", "rowboat-export"]
 }
