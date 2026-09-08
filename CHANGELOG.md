@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.1](https://github.com/PlaybookMediaLLC/openwhispr/compare/v1.11.0...v1.11.1) (2026-09-08)
+
+
+### Bug Fixes
+
+* **deps:** patch the Tiptap ReDoS and js-yaml merge-key advisories ([79ba821](https://github.com/PlaybookMediaLLC/openwhispr/commit/79ba821ecf7b61155d8e6942bb6e601cd4296392))
+* **release:** find the packaged macOS app by extension, not product name ([bbd6abd](https://github.com/PlaybookMediaLLC/openwhispr/commit/bbd6abdcb6fcd2f35c8b13599654bd2d95622da2))
+
 # [1.11.0](https://github.com/PlaybookMediaLLC/openwhispr/compare/v1.10.0...v1.11.0) (2026-09-08)
 
 
