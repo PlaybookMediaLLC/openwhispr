@@ -85,6 +85,12 @@ export const DistributionSchema = z
       apiUrl: HttpUrl,
       authUrl: HttpUrl,
       oauthCallbackUrl: HttpUrl,
+      // Identity providers only redirect to redirect URIs registered with them,
+      // and a loopback URI generally is not one. When set, sign-in asks the
+      // provider for this already-registered web URL, which bounces the
+      // authorization code back to oauthCallbackUrl. Omit it for distributions
+      // whose loopback URI is registered directly.
+      oauthBrokerUrl: HttpUrl.optional(),
     }),
     updates: z.object({
       provider: z.literal("github"),
