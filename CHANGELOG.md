@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.2](https://github.com/PlaybookMediaLLC/openwhispr/compare/v1.11.1...v1.11.2) (2026-09-08)
+
+
+### Bug Fixes
+
+* route desktop sign-in through the registered web callback ([#38](https://github.com/PlaybookMediaLLC/openwhispr/issues/38)) ([b766c03](https://github.com/PlaybookMediaLLC/openwhispr/commit/b766c0375108b40faeef9b7d5ea5baaa677c1bb8))
+
 ## [1.11.1](https://github.com/PlaybookMediaLLC/openwhispr/compare/v1.11.0...v1.11.1) (2026-09-08)
 
 
