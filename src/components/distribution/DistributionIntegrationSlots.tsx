@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link2, Loader2, RefreshCw, Unlink } from "lucide-react";
+import { Link2, Loader2, RefreshCw, Unlink } from "../icons";
 import { distribution } from "../../config/distribution";
 import {
   RowboatStatusSchema,
