@@ -2,6 +2,8 @@
 // path, plus the decoder window the dictionary UI warns against. One place, so
 // the request bound and the warning cannot drift apart.
 
+import { hasExactHostname } from "./urlUtils.ts";
+
 // Groq rejects prompts > 896 chars (incl. when reached via a custom endpoint);
 // 890 leaves margin for UTF-16 vs codepoint counting drift.
 export const GROQ_PROMPT_CHARS = 890;
@@ -32,7 +34,9 @@ export const TRANSCRIBE_PROMPT_CHARS = 8000;
 // whatever model name the user typed, and most of those servers are
 // Whisper-family under a name that never says "whisper".
 export function dictionaryPromptLimit({ provider = "", endpoint = "", model = "" } = {}) {
-  if (provider === "groq" || endpoint.includes("api.groq.com")) return GROQ_PROMPT_CHARS;
+  if (provider === "groq" || hasExactHostname(endpoint, "api.groq.com")) {
+    return GROQ_PROMPT_CHARS;
+  }
   if (model.toLowerCase().startsWith("gpt-4o")) return TRANSCRIBE_PROMPT_CHARS;
   return WHISPER_PROMPT_CHARS;
 }

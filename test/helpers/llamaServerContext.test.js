@@ -194,11 +194,13 @@ function withStubServer(routes) {
   // A Map rather than indexing the object: req.url is request-controlled, so a
   // plain lookup answers /toString or /constructor with an inherited
   // Object.prototype method and then calls it.
-  const routeTable = new Map(Object.entries(routes));
+  const routeTable = new Map(
+    Object.entries(routes).map(([path, handler]) => [path, { handle: handler }])
+  );
   return async (run) => {
     const server = http.createServer((req, res) => {
-      const handler = routeTable.get(req.url);
-      if (typeof handler !== "function") {
+      const route = routeTable.get(req.url);
+      if (!route) {
         res.writeHead(404).end();
         return;
       }
@@ -207,7 +209,7 @@ function withStubServer(routes) {
         body += chunk;
       });
       req.on("end", () => {
-        const { status = 200, payload } = handler(body);
+        const { status = 200, payload } = route.handle(body);
         res.writeHead(status, { "Content-Type": "application/json" });
         res.end(JSON.stringify(payload));
       });
