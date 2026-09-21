@@ -145,7 +145,7 @@ jobs:
       - name: Check translations
         run: npm run i18n:check
       - name: Audit dependencies
-        run: npm audit
+        run: npm audit --audit-level=high
       - name: Build better-sqlite3 for the runner's node
         # --ignore-scripts skips the native build, so DB-backed tests silently
         # skip unless the binding is rebuilt for the CI Node runtime.
@@ -270,7 +270,8 @@ jobs:
       - name: Build Application
         run: npm run build:linux -- --publish always --config "$RELEASE_CONFIG_PATH"
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
+          BRAND_FONTS_REQUIRED: "1"
           VITE_AUTH_URL: ${{ vars.VITE_AUTH_URL || 'https://auth.openwhispr.com' }}
           VITE_OPENWHISPR_API_URL: ${{ vars.VITE_OPENWHISPR_API_URL }}
           VITE_OPENWHISPR_OAUTH_CALLBACK_URL: ${{ vars.VITE_OPENWHISPR_OAUTH_CALLBACK_URL }}
@@ -395,7 +396,8 @@ jobs:
           fi
           npm run build:win -- --publish "$publish_mode" --config "$RELEASE_CONFIG_PATH"
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
+          BRAND_FONTS_REQUIRED: "1"
           VITE_AUTH_URL: ${{ vars.VITE_AUTH_URL || 'https://auth.openwhispr.com' }}
           VITE_OPENWHISPR_API_URL: ${{ vars.VITE_OPENWHISPR_API_URL }}
           VITE_OPENWHISPR_OAUTH_CALLBACK_URL: ${{ vars.VITE_OPENWHISPR_OAUTH_CALLBACK_URL }}
@@ -525,7 +527,8 @@ jobs:
         run: npm run build:mac -- --${{ matrix.arch }} --publish always --config "$RELEASE_CONFIG_PATH"
         env:
           TARGET_ARCH: ${{ matrix.arch }}
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
+          BRAND_FONTS_REQUIRED: "1"
           VITE_AUTH_URL: ${{ vars.VITE_AUTH_URL || 'https://auth.openwhispr.com' }}
           VITE_OPENWHISPR_API_URL: ${{ vars.VITE_OPENWHISPR_API_URL }}
           VITE_OPENWHISPR_OAUTH_CALLBACK_URL: ${{ vars.VITE_OPENWHISPR_OAUTH_CALLBACK_URL }}
