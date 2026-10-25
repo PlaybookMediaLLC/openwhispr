@@ -40,6 +40,16 @@ jobs:
           # a skipped DB test here means the rebuild step above is gone: fail instead
           REQUIRE_DB_TESTS: "1"
 
+  quality:
+    if: always()
+    needs: [pr-quality]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require the shared quality checks to pass
+        env:
+          QUALITY_RESULT: ${{ needs.pr-quality.result }}
+        run: test "$QUALITY_RESULT" = success
+
   ci-validation:
     name: CI validation
     if: always()
