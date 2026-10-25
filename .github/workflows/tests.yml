@@ -39,3 +39,18 @@ jobs:
           ELECTRON_OVERRIDE_DIST_PATH: /tmp
           # a skipped DB test here means the rebuild step above is gone: fail instead
           REQUIRE_DB_TESTS: "1"
+
+  ci-validation:
+    name: CI validation
+    if: always()
+    needs: [pr-quality]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every validation job to pass
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          test -n "$RESULTS"
+          for result in $RESULTS; do
+            test "$result" = success || exit 1
+          done
