@@ -95,7 +95,7 @@ test("semantic-release sees the staging branch as the active GitHub ref", () => 
 test("release dependencies and GitHub Actions receive weekly updates", () => {
   assert.match(dependabotConfig, /directory: "\/\.github\/semantic-release"/);
   assert.match(dependabotConfig, /package-ecosystem: "github-actions"/);
-  assert.equal((dependabotConfig.match(/interval: "weekly"/g) || []).length, 3);
+  assert.doesNotMatch(dependabotConfig, /interval: "(?!weekly")/);
   assert.doesNotMatch(allWorkflows, /actions\/(?:checkout|setup-node)@v4/);
   assert.match(allWorkflows, /actions\/checkout@v7/);
   assert.match(allWorkflows, /actions\/setup-node@v7/);
