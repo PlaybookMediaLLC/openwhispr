@@ -10,9 +10,10 @@ import {
   prepareAuthRequest,
 } from "./authRequestContext";
 import { distribution } from "../config/distribution";
+import { withDistributionSignOut } from "../config/distributionAuth";
 
 export const AUTH_URL = import.meta.env.VITE_AUTH_URL || distribution.services.authUrl;
-export const authClient = createAuthClient({
+const upstreamAuthClient = createAuthClient({
   baseURL: AUTH_URL,
   plugins: [ssoClient()],
   fetchOptions: {
@@ -25,6 +26,7 @@ export const authClient = createAuthClient({
     onError: handleAuthRequestError,
   },
 });
+export const authClient = withDistributionSignOut(upstreamAuthClient);
 
 let authRefetchTimer: ReturnType<typeof setTimeout> | null = null;
 window.electronAPI?.onAuthTokenStateChanged?.((state) => {
@@ -134,12 +136,9 @@ export function getGracePeriodRemainingMs(): number {
 
 export async function signOut(): Promise<void> {
   credentialAccountCache = null;
+  await window.electronAPI?.closeActivationStream?.().catch(() => undefined);
   try {
-    if (distribution.extensions.includes("oppulence-cloud")) {
-      await window.electronAPI?.distributionExtensions?.invoke("oppulence-cloud", "clearSession");
-    } else {
-      await authClient.signOut();
-    }
+    await authClient.signOut();
   } catch {
     // Local sign-out must still cross a credential generation boundary when
     // the server is offline; the remote session can expire independently.

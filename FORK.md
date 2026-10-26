@@ -23,8 +23,10 @@ conventions live in CLAUDE.md (upstream owns that file).
 ## Current generic upstream hooks
 
 - `src/vite.config.mjs` maps renderer logo imports to the selected manifest.
-- `src/components/CliIntegrationCard.tsx`, `McpIntegrationCard.tsx`, and
-  `ControlPanelSidebar.tsx` import those generic aliases instead of fixed assets.
+- `src/components/ControlPanelSidebar.tsx` imports the `@distribution/icon`
+  alias instead of a fixed asset.
+- `src/components/IntegrationsView.tsx` renders `DistributionIntegrationSlots`
+  in the Connectors pane.
 - `src/helpers/tray.js` and `linuxAutostart.js` resolve the selected manifest's
   tray and Linux assets through `src/config/distributionAssets.ts`.
 - `scripts/prepare-release-config.js` maps packaging icons and the optional
