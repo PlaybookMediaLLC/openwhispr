@@ -3,7 +3,9 @@ const os = require("os");
 const path = require("path");
 const debugLogger = require("./debugLogger");
 const onnxWorkerClient = require("./onnxWorkerClient");
-const { resolveReleaseDistribution } = require("./releaseIdentity");
+// Resolved from __dirname, not "./": upstream tests load this file in a
+// sandbox whose require resolves relative paths from the test folder.
+const { resolveReleaseDistribution } = require(path.join(__dirname, "releaseIdentity"));
 
 const DISTRIBUTION = resolveReleaseDistribution(require("../../package.json").distribution);
 
