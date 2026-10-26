@@ -92,8 +92,10 @@ jobs:
             echo
             echo "Resolve the conflict on the \`$SYNC_BRANCH\` branch. See \"Upstream sync\" in FORK.md."
           } > "$RUNNER_TEMP/issue.md"
-          number=$(gh api "repos/$GITHUB_REPOSITORY/issues?state=open&per_page=100" \
-            --jq "[.[] | select(.pull_request == null and .title == \"$CONFLICT_ISSUE_TITLE\")][0].number // empty")
+          # --paginate reads every page; keep the first match.
+          number=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues?state=open&per_page=100" \
+            --jq ".[] | select(.pull_request == null and .title == \"$CONFLICT_ISSUE_TITLE\") | .number")
+          number=${number%%$'\n'*}
           if [ -n "$number" ]; then
             gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/$number" -F body=@"$RUNNER_TEMP/issue.md" > /dev/null
           else
@@ -106,8 +108,10 @@ jobs:
         if: steps.merge.outputs.conflicts == ''
         run: |
           # A clean merge resolves an open conflict issue.
-          number=$(gh api "repos/$GITHUB_REPOSITORY/issues?state=open&per_page=100" \
-            --jq "[.[] | select(.pull_request == null and .title == \"$CONFLICT_ISSUE_TITLE\")][0].number // empty")
+          # --paginate reads every page; keep the first match.
+          number=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues?state=open&per_page=100" \
+            --jq ".[] | select(.pull_request == null and .title == \"$CONFLICT_ISSUE_TITLE\") | .number")
+          number=${number%%$'\n'*}
           if [ -n "$number" ]; then
             gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/$number" -f state=closed > /dev/null
           fi
