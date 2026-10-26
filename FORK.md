@@ -27,6 +27,8 @@ conventions live in CLAUDE.md (upstream owns that file).
   alias instead of a fixed asset.
 - `src/components/IntegrationsView.tsx` renders `DistributionIntegrationSlots`
   in the Connectors pane.
+- `src/main.jsx` imports `@distribution/theme` after `index.css`. The Vite
+  config maps it to the manifest's `rendererTheme`, or to an empty stylesheet.
 - `src/helpers/tray.js` and `linuxAutostart.js` resolve the selected manifest's
   tray and Linux assets through `src/config/distributionAssets.ts`.
 - `scripts/prepare-release-config.js` maps packaging icons and the optional
