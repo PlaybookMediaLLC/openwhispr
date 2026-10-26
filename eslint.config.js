@@ -10,6 +10,7 @@ module.exports = [
       "distributions/oppulence-voice/docs/**",
       "*.min.js",
       "build/**",
+      "openwhispr-mobile/**", // mobile has its own ESLint configuration
       "src/**", // src has its own config
     ],
   },

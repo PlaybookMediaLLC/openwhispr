@@ -134,6 +134,7 @@ export function getGracePeriodRemainingMs(): number {
 
 export async function signOut(): Promise<void> {
   credentialAccountCache = null;
+  await window.electronAPI?.closeActivationStream?.().catch(() => undefined);
   try {
     if (distribution.extensions.includes("oppulence-cloud")) {
       await window.electronAPI?.distributionExtensions?.invoke("oppulence-cloud", "clearSession");
