@@ -20,6 +20,8 @@ import "@fontsource-variable/inter/opsz.css";
 import "@fontsource-variable/caveat";
 import "./brandFonts";
 import "./index.css";
+// After index.css, so a distribution theme overrides the upstream colors.
+import "@distribution/theme";
 
 bindDocumentLanguage(i18n, document.documentElement, import.meta.hot);
 

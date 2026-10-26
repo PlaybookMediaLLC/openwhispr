@@ -1,0 +1,49 @@
+/*
+ * Oppulence Voice theme
+ *
+ * Maps the shared Oppulence palette (tokens.css) onto the color tokens that
+ * the upstream renderer reads. Only colors change. Semantic colors (success,
+ * warning, destructive) and the Agent Mode color keep their upstream values.
+ * The renderer loads this file after index.css, so these rules win.
+ */
+@import "./tokens.css";
+
+:root,
+.dark {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--background-50);
+  --color-ring: var(--ring);
+  --color-link: var(--oppulence-blue);
+  --color-info: var(--oppulence-blue);
+
+  --color-surface-0: var(--background);
+  --color-surface-1: var(--background-50);
+  --color-surface-2: var(--card);
+  --color-surface-3: var(--background-100);
+  --color-surface-raised: var(--background-200);
+  --color-surface-window: var(--background-100);
+
+  --color-border-subtle: var(--border);
+  --color-border-hover: var(--background-400);
+  --color-border-active: var(--ring);
+}
+
+/* Primary actions always use white text (BRAND_GLASS_SURFACE), so their fill
+   stays graphite in both modes. */
+:root {
+  --gradient-brand-glass: linear-gradient(180deg, var(--polar-600) 0%, var(--polar-700) 100%);
+}

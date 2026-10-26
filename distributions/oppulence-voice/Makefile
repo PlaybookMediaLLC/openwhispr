@@ -4,7 +4,7 @@ OPPULENCE_VOICE_API_PORT ?= 28080
 API_URL ?= http://127.0.0.1:$(OPPULENCE_VOICE_API_PORT)
 export OPPULENCE_VOICE_API_PORT
 
-.PHONY: pull up up-tools down reset logs smoke dev
+.PHONY: pull up up-tools down reset logs smoke dev tokens
 
 pull:
 	$(COMPOSE) pull
@@ -33,3 +33,6 @@ smoke:
 
 dev: up
 	cd $(ROOT) && OPPULENCE_VOICE_API_URL=$(API_URL) npm run dev:oppulence
+
+tokens:
+	cd $(ROOT) && node --import tsx distributions/oppulence-voice/scripts/sync-tokens.ts $(CHECKOUT) $(REF)

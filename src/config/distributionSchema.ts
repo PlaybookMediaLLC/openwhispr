@@ -129,6 +129,8 @@ export const DistributionSchema = z
       linuxIcon: AssetPath,
       /** Optional glyph for the onboarding shell; omit to keep the built-in SVG. */
       onboardingMark: AssetPath.nullish(),
+      /** Optional renderer stylesheet loaded after index.css; omit to keep the upstream colors. */
+      rendererTheme: AssetPath.nullish(),
       macAssetCatalog: z
         .object({
           file: AssetPath,

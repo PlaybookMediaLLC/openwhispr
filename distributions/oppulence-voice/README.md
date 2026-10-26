@@ -4,6 +4,19 @@ This directory owns the Oppulence-specific development stack, documentation,
 and release assets. Keeping these files together avoids copying Rowboat backend
 source into this fork and limits upstream merge conflicts.
 
+## Theme
+
+`theme/theme.css` maps the shared Oppulence palette onto the upstream color
+tokens. Only colors change. `theme/tokens.css` is a pinned copy of
+`@oppulence/ui/tokens.css` from Oppulence-Engineering/Desktop-Assistant. Do not
+edit it by hand: a test checks its sha256. To update it from a local checkout:
+
+```bash
+make -C distributions/oppulence-voice tokens CHECKOUT=../Desktop-Assistant REF=origin/develop
+```
+
+Leave out `REF` to copy the checkout's working tree.
+
 ## Local backend
 
 The stack pulls the latest backend image that passed the Rowboat production

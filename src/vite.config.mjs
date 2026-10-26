@@ -71,6 +71,11 @@ export default defineConfig(({ mode }) => {
         "@distribution/mark": distribution.assets.onboardingMark
           ? path.resolve(envDir, distribution.assets.onboardingMark)
           : path.resolve(__dirname, "config/emptyDistributionMark.ts"),
+        // Optional: a distribution stylesheet that the renderer loads after
+        // index.css; the default distribution maps it to an empty file.
+        "@distribution/theme": distribution.assets.rendererTheme
+          ? path.resolve(envDir, distribution.assets.rendererTheme)
+          : path.resolve(__dirname, "config/emptyDistributionTheme.css"),
       },
     },
     server: {
