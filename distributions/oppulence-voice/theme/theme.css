@@ -22,8 +22,10 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
+  /* Upstream uses accent as a highlight hue (text-accent, bg-accent/8), not a
+     surface, so it maps to the one Oppulence hue. */
+  --color-accent: var(--blue-500);
+  --color-accent-foreground: var(--gray-0);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
@@ -67,4 +69,10 @@
   /* Primary actions always use white text (BRAND_GLASS_SURFACE), so their
      fill stays graphite in both modes. */
   --gradient-brand-glass: linear-gradient(180deg, var(--graphite-700) 0%, var(--graphite-800) 100%);
+}
+
+/* Onboarding controls keep white text on their accent (index.css), so the
+   accent stays graphite in dark mode, where the primary is near-white. */
+body.dark:has(.onboarding-canvas) {
+  --onboarding-accent: var(--graphite-700);
 }
