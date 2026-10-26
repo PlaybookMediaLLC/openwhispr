@@ -1,10 +1,10 @@
 /*
  * Oppulence Voice theme
  *
- * Maps the shared Oppulence palette (tokens.css) onto the color tokens that
- * the upstream renderer reads. Only colors change. Semantic colors (success,
- * warning, destructive) and the Agent Mode color keep their upstream values.
- * The renderer loads this file after index.css, so these rules win.
+ * Maps the Oppulence design tokens (tokens.css) onto the tokens that the
+ * upstream renderer reads: colors, square corners, and the Inter typeface.
+ * The Agent Mode color keeps its upstream value. The renderer loads this file
+ * after index.css, so these rules win.
  */
 @import "./tokens.css";
 
@@ -24,17 +24,23 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --color-border: var(--border);
   --color-input: var(--background-50);
   --color-ring: var(--ring);
-  --color-link: var(--oppulence-blue);
-  --color-info: var(--oppulence-blue);
+  --color-link: var(--blue-500);
+  --color-info: var(--blue-500);
 
   --color-surface-0: var(--background);
   --color-surface-1: var(--background-50);
   --color-surface-2: var(--card);
   --color-surface-3: var(--background-100);
-  --color-surface-raised: var(--background-200);
+  --color-surface-raised: var(--surface-raised);
   --color-surface-window: var(--background-100);
 
   --color-border-subtle: var(--border);
@@ -42,8 +48,23 @@
   --color-border-active: var(--ring);
 }
 
-/* Primary actions always use white text (BRAND_GLASS_SURFACE), so their fill
-   stays graphite in both modes. */
 :root {
-  --gradient-brand-glass: linear-gradient(180deg, var(--polar-600) 0%, var(--polar-700) 100%);
+  /* Square product chrome. Circles keep rounded-full. */
+  --radius-xs: var(--radius);
+  --radius-sm: var(--radius);
+  --radius-md: var(--radius);
+  --radius-lg: var(--radius);
+  --radius-xl: var(--radius);
+  --radius-2xl: var(--radius);
+  --radius-3xl: var(--radius);
+  --radius-4xl: var(--radius);
+  --radius-shell: var(--radius);
+
+  --font-sans: var(--typeface-sans);
+  --font-family-sans: var(--typeface-sans);
+  --font-family-display: var(--typeface-sans);
+
+  /* Primary actions always use white text (BRAND_GLASS_SURFACE), so their
+     fill stays graphite in both modes. */
+  --gradient-brand-glass: linear-gradient(180deg, var(--graphite-700) 0%, var(--graphite-800) 100%);
 }

@@ -6,10 +6,10 @@ source into this fork and limits upstream merge conflicts.
 
 ## Theme
 
-`theme/theme.css` maps the shared Oppulence palette onto the upstream color
-tokens. Only colors change. `theme/tokens.css` is a pinned copy of
-`@oppulence/ui/tokens.css` from Oppulence-Engineering/Desktop-Assistant. Do not
-edit it by hand: a test checks its sha256. To update it from a local checkout:
+`theme/theme.css` maps the Oppulence design tokens onto the upstream renderer
+tokens: colors, square corners, and the Inter typeface. `theme/tokens.css` is a
+pinned copy of `@oppulence/ui/tokens.css` from Oppulence-Engineering/oppulence.
+Do not edit it by hand: a test checks its sha256. To update it from a local checkout:
 
 ```bash
 make -C distributions/oppulence-voice tokens CHECKOUT=../Desktop-Assistant REF=origin/develop
