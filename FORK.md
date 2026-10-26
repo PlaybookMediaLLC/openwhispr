@@ -41,10 +41,23 @@ smoke tooling, and public docs stay under `distributions/oppulence-voice/`.
 
 ## Upstream sync
 
-`.github/workflows/sync-upstream.yml` merges OpenWhispr/openwhispr main into
-the `upstream` branch every night and opens a PR against main. The required
-"tests" check runs on that PR before merge.
+`.github/workflows/sync-upstream.yml` runs every night. It merges `develop`,
+then OpenWhispr/openwhispr `main`, into the `upstream` branch. Then it opens a
+PR from `upstream` to `develop`. The required checks run on that PR before
+merge.
 
-The Actions token cannot push changes to workflow files. When the sync job
-fails on a workflow-file push, run the merge locally and push the `upstream`
-branch with your own credentials. The next workflow run then opens the PR.
+The job needs the `SYNC_UPSTREAM_TOKEN` secret. Use a fine-grained token for
+this repository with read and write access to contents, pull requests, issues,
+and workflows. The built-in Actions token cannot push upstream workflow-file
+changes, and a PR that it opens does not start the required checks.
+
+When a merge conflicts, the job opens or updates the issue "Upstream sync
+needs conflict resolution". The issue lists the conflicted files. To resolve
+the conflict:
+
+1. `git fetch origin && git switch upstream && git merge --ff-only origin/upstream`
+2. `git merge origin/develop`
+3. `git fetch upstream main && git merge upstream/main`
+4. Resolve each file. Keep fork changes at the hook points above.
+5. Run `npm run quality-check && npm test`.
+6. Push `upstream`, then run the workflow manually. The run opens the PR.
