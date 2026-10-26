@@ -3,9 +3,11 @@ const path = require("path");
 const os = require("os");
 const { execFileSync } = require("child_process");
 const { quoteExecPath, resolveExecutablePath } = require("./linuxAutostart");
+const { resolveReleaseDistribution } = require("./releaseIdentity");
 
+const DISTRIBUTION = resolveReleaseDistribution(require("../../package.json").distribution);
 const XDG_TOOL_TIMEOUT_MS = 3000;
-const PACKAGED_DESKTOP_FILE = "open-whispr.desktop";
+const PACKAGED_DESKTOP_FILE = DISTRIBUTION.linux.desktopName;
 
 // Characters the Desktop Entry spec says must be quoted in an Exec argument.
 const EXEC_RESERVED_CHARACTERS = /[\s"'\\><~|&;$*?#()`]/;
@@ -24,7 +26,7 @@ function buildHandlerEntry(protocol, launchCommand) {
   return [
     "[Desktop Entry]",
     "Type=Application",
-    "Name=OpenWhispr",
+    `Name=${DISTRIBUTION.productName}`,
     `Exec=${[...launchCommand.map(formatExecArg), "%U"].join(" ")}`,
     "Terminal=false",
     "NoDisplay=true",

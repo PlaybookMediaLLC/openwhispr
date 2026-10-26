@@ -10,6 +10,7 @@ const { loadDistribution } = require("../../src/config/distributionSchema.ts");
 
 const baseConfig = {
   appId: "com.gizmolabs.openwhispr",
+  extraMetadata: { windowsTrayIdentity: true },
   productName: "OpenWhispr",
   protocols: {
     name: "OpenWhispr Protocol",
@@ -23,6 +24,7 @@ const baseConfig = {
     },
   },
   win: {
+    forceCodeSigning: true,
     azureSignOptions: {
       certificateProfileName: "openwhispr-release",
       codeSigningAccountName: "OpenWhispr",
@@ -84,6 +86,8 @@ test("disables unavailable platform signing without changing the base config", (
   });
 
   assert.equal(config.win.azureSignOptions, null);
+  assert.equal(config.win.forceCodeSigning, false);
+  assert.equal(config.extraMetadata.windowsTrayIdentity, false);
   assert.equal(config.mac.identity, null);
   assert.equal(config.mac.notarize, false);
   assert.notEqual(baseConfig.win.azureSignOptions, null);
