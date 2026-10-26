@@ -4,7 +4,7 @@ import { I18nextProvider } from "react-i18next";
 import AppRouter from "./AppRouter.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.tsx";
 import CleanupFailureToastListener from "./components/CleanupFailureToastListener.tsx";
-import TinfoilModelSwitchToastListener from "./components/TinfoilModelSwitchToastListener.tsx";
+import RetiredModelSwitchToastListener from "./components/RetiredModelSwitchToastListener.tsx";
 import GpuPackMigrationToastListener from "./components/GpuPackMigrationToastListener.tsx";
 import { I18nDirectionProvider } from "./components/I18nDirectionProvider.tsx";
 import { ToastProvider } from "./components/ui/Toast.tsx";
@@ -20,6 +20,8 @@ import "@fontsource-variable/inter/opsz.css";
 import "@fontsource-variable/caveat";
 import "./brandFonts";
 import "./index.css";
+// After index.css, so a distribution theme overrides the upstream colors.
+import "@distribution/theme";
 
 bindDocumentLanguage(i18n, document.documentElement, import.meta.hot);
 
@@ -31,7 +33,7 @@ root.render(
         <I18nDirectionProvider>
           <SettingsProvider>
             <ToastProvider>
-              <TinfoilModelSwitchToastListener />
+              <RetiredModelSwitchToastListener />
               <CleanupFailureToastListener />
               <GpuPackMigrationToastListener />
               <AppRouter />

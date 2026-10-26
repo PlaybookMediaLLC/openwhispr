@@ -1,11 +1,14 @@
 name: Sync Upstream
 
-# Nightly fork sync. Fetches OpenWhispr/openwhispr, merges its main into the
-# long-lived "upstream" branch, and opens a PR from "upstream" to main when
-# the branch carries changes that main does not have. A human reviews and
-# merges the PR, so upstream code never lands on main unreviewed.
-# If the merge conflicts, the job fails and a human resolves it on the
-# "upstream" branch.
+# Nightly fork sync. Merges develop, then OpenWhispr/openwhispr main, into
+# the long-lived "upstream" branch and opens a PR from "upstream" to develop.
+# A human reviews and merges the PR, so upstream code never lands unreviewed.
+# If a merge conflicts, the job opens or updates one issue that lists the
+# conflicted files, then fails. A human resolves the conflict on the
+# "upstream" branch (see FORK.md).
+#
+# SYNC_UPSTREAM_TOKEN is required. The built-in token cannot push upstream
+# workflow-file changes, and a PR it opens does not start the required checks.
 on:
   schedule:
     # 08:00 UTC = midnight PST.
@@ -17,55 +20,113 @@ concurrency:
   group: sync-upstream
   cancel-in-progress: true
 
-# contents: write pushes the "upstream" branch.
-# pull-requests: write opens the sync PR.
+# Every write uses SYNC_UPSTREAM_TOKEN, not the built-in token.
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
+
+env:
+  BASE_BRANCH: develop
+  SYNC_BRANCH: upstream
+  CONFLICT_ISSUE_TITLE: "Upstream sync needs conflict resolution"
 
 jobs:
   sync:
     name: Merge Upstream & Open PR
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.SYNC_UPSTREAM_TOKEN }}
     steps:
+      - name: Require the sync token
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::Set the SYNC_UPSTREAM_TOKEN secret. See FORK.md."
+            exit 1
+          fi
+
       # persist-credentials stays on (the default): the push step
-      # authenticates with the persisted GITHUB_TOKEN.
+      # authenticates with the persisted sync token.
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # Full history: the merge needs the common ancestor.
           fetch-depth: 0
+          token: ${{ secrets.SYNC_UPSTREAM_TOKEN }}
 
-      - name: Merge upstream/main into the upstream branch
+      - name: Merge develop and upstream/main into the upstream branch
+        id: merge
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git remote add upstream https://github.com/OpenWhispr/openwhispr.git
           git fetch upstream main
-          # Reuse the existing branch, or create it from main on the first run.
-          git checkout upstream || git checkout -b upstream
-          git merge --no-edit upstream/main
-          git push origin upstream
+          # Reuse the existing branch, or create it from develop on the first run.
+          if git rev-parse --verify --quiet "refs/remotes/origin/$SYNC_BRANCH" > /dev/null; then
+            git checkout -B "$SYNC_BRANCH" "origin/$SYNC_BRANCH"
+          else
+            git checkout -b "$SYNC_BRANCH" "origin/$BASE_BRANCH"
+          fi
+          # Merge develop first, so the conflicts here are the ones the PR would show.
+          for ref in "origin/$BASE_BRANCH" upstream/main; do
+            if ! git merge --no-edit "$ref"; then
+              git diff --name-only --diff-filter=U > "$RUNNER_TEMP/conflicts.txt"
+              git merge --abort
+              echo "conflicts=$ref" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+          git push origin "$SYNC_BRANCH"
 
-      - name: Open PR against main
+      - name: Report the conflict
+        if: steps.merge.outputs.conflicts != ''
         env:
-          GH_TOKEN: ${{ github.token }}
+          CONFLICT_REF: ${{ steps.merge.outputs.conflicts }}
         run: |
-          # No delta against main: nothing to open.
-          if git diff --quiet origin/main upstream; then
-            echo "upstream branch matches main; no PR needed."
+          {
+            echo "The nightly merge of \`$CONFLICT_REF\` into \`$SYNC_BRANCH\` conflicts in these files:"
+            echo
+            # The backticks are literal Markdown, not shell expansions.
+            # shellcheck disable=SC2016
+            sed 's/^/- `/; s/$/`/' "$RUNNER_TEMP/conflicts.txt"
+            echo
+            echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo
+            echo "Resolve the conflict on the \`$SYNC_BRANCH\` branch. See \"Upstream sync\" in FORK.md."
+          } > "$RUNNER_TEMP/issue.md"
+          # --paginate reads every page; keep the first match.
+          number=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues?state=open&per_page=100" \
+            --jq ".[] | select(.pull_request == null and .title == \"$CONFLICT_ISSUE_TITLE\") | .number")
+          number=${number%%$'\n'*}
+          if [ -n "$number" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/$number" -F body=@"$RUNNER_TEMP/issue.md" > /dev/null
+          else
+            gh api "repos/$GITHUB_REPOSITORY/issues" -f title="$CONFLICT_ISSUE_TITLE" -F body=@"$RUNNER_TEMP/issue.md" > /dev/null
+          fi
+          echo "::error::Merging $CONFLICT_REF conflicts. See the \"$CONFLICT_ISSUE_TITLE\" issue."
+          exit 1
+
+      - name: Open PR against develop
+        if: steps.merge.outputs.conflicts == ''
+        run: |
+          # A clean merge resolves an open conflict issue.
+          # --paginate reads every page; keep the first match.
+          number=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues?state=open&per_page=100" \
+            --jq ".[] | select(.pull_request == null and .title == \"$CONFLICT_ISSUE_TITLE\") | .number")
+          number=${number%%$'\n'*}
+          if [ -n "$number" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/$number" -f state=closed > /dev/null
+          fi
+          # No delta against develop: nothing to open.
+          if git diff --quiet "origin/$BASE_BRANCH" "$SYNC_BRANCH"; then
+            echo "$SYNC_BRANCH matches $BASE_BRANCH; no PR needed."
             exit 0
           fi
           # An open sync PR already tracks the branch; the push above updated it.
-          if [ "$(gh pr list --head upstream --base main --state open --json number --jq length)" != "0" ]; then
+          if [ "$(gh pr list --head "$SYNC_BRANCH" --base "$BASE_BRANCH" --state open --json number --jq length)" != "0" ]; then
             echo "Sync PR already open; branch updated."
             exit 0
           fi
-          # REST, not "gh pr create": the GraphQL createPullRequest mutation
-          # rejects the Actions token with "Resource not accessible by
-          # integration" even with pull-requests: write granted.
           gh api "repos/${GITHUB_REPOSITORY}/pulls" \
-            -f base=main \
-            -f head=upstream \
+            -f base="$BASE_BRANCH" \
+            -f head="$SYNC_BRANCH" \
             -f title="chore: sync upstream $(date -u +%F)" \
             -f body="Nightly merge of OpenWhispr/openwhispr main into the upstream branch. Review the diff, then merge."

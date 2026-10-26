@@ -177,7 +177,10 @@ function createReleaseConfig(baseConfig, options) {
   }
 
   if (unsignedWindows) {
-    config.win = { ...(config.win || {}), azureSignOptions: null };
+    // Match electron-builder.unsigned-win.json: no forced signing, and no fixed
+    // tray GUID, which only a signed build may use.
+    config.win = { ...(config.win || {}), azureSignOptions: null, forceCodeSigning: false };
+    config.extraMetadata = { ...(config.extraMetadata || {}), windowsTrayIdentity: false };
   }
 
   if (unsignedMacos) {

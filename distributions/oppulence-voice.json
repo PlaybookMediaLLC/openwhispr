@@ -37,6 +37,7 @@
     "windowsIcon": "distributions/oppulence-voice/assets/oppulence-mark.ico",
     "linuxIcon": "distributions/oppulence-voice/assets/oppulence-mark.png",
     "onboardingMark": "distributions/oppulence-voice/assets/oppulence-mark.png",
+    "rendererTheme": "distributions/oppulence-voice/theme/theme.css",
     "macAssetCatalog": null
   },
   "signing": {

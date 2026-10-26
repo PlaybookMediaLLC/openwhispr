@@ -195,7 +195,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: "24"
+          node-version: "24.22.1"
           cache: "npm"
 
       - name: Install dependencies
@@ -245,7 +245,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/electron
-          key: linux-electron-${{ hashFiles('**/package-lock.json') }}
+          key: linux-electron-${{ hashFiles('package-lock.json') }}
           restore-keys: linux-electron-
 
       - name: Install Linux build and packaging dependencies
@@ -255,11 +255,15 @@ jobs:
 
       - name: Create runtime env
         run: |
-          {
-            echo "GOOGLE_CALENDAR_CLIENT_ID=${{ secrets.GOOGLE_CALENDAR_CLIENT_ID }}"
-            echo "GOOGLE_CALENDAR_CLIENT_SECRET=${{ secrets.GOOGLE_CALENDAR_CLIENT_SECRET }}"
-            echo "MICROSOFT_CALENDAR_CLIENT_ID=${{ secrets.MICROSOFT_CALENDAR_CLIENT_ID }}"
-          } >> .env
+          echo "GOOGLE_CALENDAR_CLIENT_ID=${{ secrets.GOOGLE_CALENDAR_CLIENT_ID }}" >> .env
+          echo "GOOGLE_CALENDAR_CLIENT_SECRET=${{ secrets.GOOGLE_CALENDAR_CLIENT_SECRET }}" >> .env
+          echo "GMAIL_CLIENT_ID=${{ secrets.GMAIL_CLIENT_ID }}" >> .env
+          echo "GMAIL_CLIENT_SECRET=${{ secrets.GMAIL_CLIENT_SECRET }}" >> .env
+          echo "MICROSOFT_CALENDAR_CLIENT_ID=${{ secrets.MICROSOFT_CALENDAR_CLIENT_ID }}" >> .env
+          echo "SLACK_CLIENT_ID=${{ secrets.SLACK_CLIENT_ID }}" >> .env
+          echo "LINEAR_CLIENT_ID=${{ secrets.LINEAR_CLIENT_ID }}" >> .env
+          echo "GITHUB_APP_CLIENT_ID=${{ secrets.GH_APP_CLIENT_ID }}" >> .env
+          echo "GITHUB_APP_SLUG=${{ secrets.GH_APP_SLUG }}" >> .env
 
       - name: Verify PipeWire system audio helper build
         run: |
@@ -287,7 +291,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: "24"
+          node-version: "24.22.1"
           cache: "npm"
 
       - name: Setup MSVC environment
@@ -350,11 +354,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
-      - name: Download windows-key-listener.exe
-        run: node scripts/download-windows-key-listener.js
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-
       - name: Compile windows-mic-listener.exe
         shell: cmd
         run: |
@@ -374,17 +373,21 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/AppData/Local/electron/Cache
-          key: windows-electron-${{ hashFiles('**/package-lock.json') }}
+          key: windows-electron-${{ hashFiles('package-lock.json') }}
           restore-keys: windows-electron-
 
       - name: Create runtime env
         shell: bash
         run: |
-          {
-            echo "GOOGLE_CALENDAR_CLIENT_ID=${{ secrets.GOOGLE_CALENDAR_CLIENT_ID }}"
-            echo "GOOGLE_CALENDAR_CLIENT_SECRET=${{ secrets.GOOGLE_CALENDAR_CLIENT_SECRET }}"
-            echo "MICROSOFT_CALENDAR_CLIENT_ID=${{ secrets.MICROSOFT_CALENDAR_CLIENT_ID }}"
-          } >> .env
+          echo "GOOGLE_CALENDAR_CLIENT_ID=${{ secrets.GOOGLE_CALENDAR_CLIENT_ID }}" >> .env
+          echo "GOOGLE_CALENDAR_CLIENT_SECRET=${{ secrets.GOOGLE_CALENDAR_CLIENT_SECRET }}" >> .env
+          echo "GMAIL_CLIENT_ID=${{ secrets.GMAIL_CLIENT_ID }}" >> .env
+          echo "GMAIL_CLIENT_SECRET=${{ secrets.GMAIL_CLIENT_SECRET }}" >> .env
+          echo "MICROSOFT_CALENDAR_CLIENT_ID=${{ secrets.MICROSOFT_CALENDAR_CLIENT_ID }}" >> .env
+          echo "SLACK_CLIENT_ID=${{ secrets.SLACK_CLIENT_ID }}" >> .env
+          echo "LINEAR_CLIENT_ID=${{ secrets.LINEAR_CLIENT_ID }}" >> .env
+          echo "GITHUB_APP_CLIENT_ID=${{ secrets.GH_APP_CLIENT_ID }}" >> .env
+          echo "GITHUB_APP_SLUG=${{ secrets.GH_APP_SLUG }}" >> .env
 
       - name: Build and Sign Application
         shell: bash
@@ -420,7 +423,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: "24"
+          node-version: "24.22.1"
           cache: "npm"
 
       - name: Install dependencies
@@ -487,7 +490,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/electron
-          key: macos-${{ matrix.arch }}-electron-${{ hashFiles('**/package-lock.json') }}
+          key: macos-${{ matrix.arch }}-electron-${{ hashFiles('package-lock.json') }}
           restore-keys: macos-${{ matrix.arch }}-electron-
 
       - name: Setup macOS Code Signing
@@ -517,11 +520,15 @@ jobs:
 
       - name: Create runtime env
         run: |
-          {
-            echo "GOOGLE_CALENDAR_CLIENT_ID=${{ secrets.GOOGLE_CALENDAR_CLIENT_ID }}"
-            echo "GOOGLE_CALENDAR_CLIENT_SECRET=${{ secrets.GOOGLE_CALENDAR_CLIENT_SECRET }}"
-            echo "MICROSOFT_CALENDAR_CLIENT_ID=${{ secrets.MICROSOFT_CALENDAR_CLIENT_ID }}"
-          } >> .env
+          echo "GOOGLE_CALENDAR_CLIENT_ID=${{ secrets.GOOGLE_CALENDAR_CLIENT_ID }}" >> .env
+          echo "GOOGLE_CALENDAR_CLIENT_SECRET=${{ secrets.GOOGLE_CALENDAR_CLIENT_SECRET }}" >> .env
+          echo "GMAIL_CLIENT_ID=${{ secrets.GMAIL_CLIENT_ID }}" >> .env
+          echo "GMAIL_CLIENT_SECRET=${{ secrets.GMAIL_CLIENT_SECRET }}" >> .env
+          echo "MICROSOFT_CALENDAR_CLIENT_ID=${{ secrets.MICROSOFT_CALENDAR_CLIENT_ID }}" >> .env
+          echo "SLACK_CLIENT_ID=${{ secrets.SLACK_CLIENT_ID }}" >> .env
+          echo "LINEAR_CLIENT_ID=${{ secrets.LINEAR_CLIENT_ID }}" >> .env
+          echo "GITHUB_APP_CLIENT_ID=${{ secrets.GH_APP_CLIENT_ID }}" >> .env
+          echo "GITHUB_APP_SLUG=${{ secrets.GH_APP_SLUG }}" >> .env
 
       - name: Build Application (${{ matrix.arch }})
         run: npm run build:mac -- --${{ matrix.arch }} --publish always --config "$RELEASE_CONFIG_PATH"
@@ -549,7 +556,7 @@ jobs:
           APP_PATH=$(find dist -maxdepth 2 -type d -name "*.app" -print -quit)
           test -n "$APP_PATH" || { echo "Missing packaged .app under dist/"; find dist -maxdepth 2 -name "*.app" -o -maxdepth 1 -type d | head -20; exit 1; }
           echo "Verifying $APP_PATH"
-          for bin in macos-audio-tap macos-globe-listener macos-fast-paste macos-mic-listener macos-text-monitor macos-media-remote; do
+          for bin in macos-audio-tap macos-globe-listener macos-fast-paste macos-mic-listener macos-calendar-listener macos-text-monitor macos-window-bounds macos-media-remote; do
             test -x "$APP_PATH/Contents/Resources/bin/$bin" || { echo "Missing in bundle: $bin"; exit 1; }
           done
           test -x "$APP_PATH/Contents/Resources/bin/MediaRemoteAdapter.framework/Versions/A/MediaRemoteAdapter" || { echo "Missing in bundle: MediaRemoteAdapter.framework"; exit 1; }
